@@ -173,8 +173,8 @@ def generate_test_line(num_fer):
 #     global_df = lecturadatos(global_df, test_measure)
 #     time.sleep(1)
 
-# Make test global df for 14 days
 
+# Make test for 14 days
 # Test parameters
 test_fermenters = 8
 test_sensors = 12
@@ -210,9 +210,9 @@ test_global_df = pd.DataFrame(test_data, index=test_index, columns=test_columns)
 # Set names 
 test_global_df.columns.names = [None, 'datetime']
 
-# plot_fermenter_sensors(2, test_global_df, '10min')
-# plot_fermenter_average(6, test_global_df, '1D')
-# plot_fermenter_boxplot(6, test_global_df)
+plot_fermenter_sensors(2, test_global_df, '10min')
+plot_fermenter_average(6, test_global_df, '1D')
+plot_fermenter_boxplot(6, test_global_df)
 plot_3d_profile(8, test_global_df)
 
 ##############################################################################
@@ -221,7 +221,7 @@ plot_3d_profile(8, test_global_df)
 
 
 
-# Subir a GITHUB
+# Subir a GITHUB done
 
 # Graficas de promedio de cada sensor por dia (Usar ) listo
 # Grafica de promedio de fermentador en tiempo continuo listo

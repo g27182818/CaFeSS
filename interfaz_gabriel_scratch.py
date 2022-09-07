@@ -180,7 +180,7 @@ test_fermenters = 8
 test_sensors = 12
 test_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 test_end = (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
-noise = 10
+noise = 1
 start_noise = 2
 
 # Make multiindex columns and date rows for 14 days
@@ -230,6 +230,12 @@ plot_3d_profile(8, test_global_df)
 # Grafica de perfil tridimensional en cada fermentador Listo
 # Hacer que la interfaz arranque
 
+# Violin plot que pueda cuadrarse por dias, 12 horas y 6 horas
+# Poner shading de noche en las graficas    
+# Frecuencia de muestreo va a ser cada 30 minutos
+# Figuras de tamaño fijo
+# Desde la interfaz se debe poder escojer el inicio el final y la frecuencia de muestreo
+# Boton para camara terminca en tiempo real
 
 # ########################################################################################################################
 # #                                             Simple GUI Section                                                       #

@@ -221,15 +221,7 @@ plot_3d_profile(8, test_global_df)
 
 
 
-# Subir a GITHUB done
-
-# Graficas de promedio de cada sensor por dia (Usar ) listo
-# Grafica de promedio de fermentador en tiempo continuo listo
-# Grafica de promedio de fermentador promediado en cada dia listo
-# Grafica de un solo fermentador promediado por dia con box listo y mejor aun
-# Grafica de perfil tridimensional en cada fermentador Listo
 # Hacer que la interfaz arranque
-
 # Violin plot que pueda cuadrarse por dias, 12 horas y 6 horas
 # Poner shading de noche en las graficas    
 # Frecuencia de muestreo va a ser cada 30 minutos

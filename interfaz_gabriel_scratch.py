@@ -4,7 +4,7 @@
 from cProfile import label
 from turtle import title
 import PySimpleGUI as sg
-from datetime import datetime, date, time, timedelta
+import datetime
 import random
 import matplotlib.pyplot as plt
 import seaborn as sn
@@ -30,7 +30,7 @@ global rutaglobal
 # Define initial values of global variables
 rutaglobal= 'datos'
 # rutaglobal=  "/home/pi/Raspduino"
-datei = datetime.now()
+datei = datetime.datetime.now()
 
 # Define initial value of auxiliary variables
 contdia = 0
@@ -178,8 +178,8 @@ def generate_test_line(num_fer):
 # Test parameters
 test_fermenters = 8
 test_sensors = 12
-test_start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-test_end = (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
+test_start = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+test_end = (datetime.datetime.now() + datetime.timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
 noise = 1
 start_noise = 2
 
@@ -212,7 +212,7 @@ test_global_df.columns.names = [None, 'datetime']
 
 plot_fermenter_sensors(2, test_global_df, '10min')
 plot_fermenter_average(6, test_global_df, '1D')
-plot_fermenter_boxplot(6, test_global_df)
+plot_fermenter_violin(6, test_global_df)
 plot_3d_profile(8, test_global_df)
 
 ##############################################################################

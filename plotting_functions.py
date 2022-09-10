@@ -3,11 +3,34 @@ import seaborn as sn
 import numpy as np
 import pandas as pd
 import os
+import datetime
 from matplotlib import cm
 import scipy.interpolate as interp
 import matplotlib
 
+def shade_day_night(global_df):
+    """
+    This function shadows day and night regions in temporal plots.
 
+    Args:
+        global_df (pandas.DataFrame): DataFrame containing the datetime index needed to plot data.
+    """
+    # Get the start and end day of medition
+    start_day = global_df.index.min().date()
+    end_day = global_df.index.max().date()
+
+    # Define shadow edges
+    shadow_start = datetime.datetime.combine(start_day +datetime.timedelta(days=-1) , datetime.time(18,0))
+    shadow_end = end_day+datetime.timedelta(days=2)
+    shadow_edges = pd.date_range(start=shadow_start, end=shadow_end, freq='12H')
+
+    # Get current figure axis
+    ax = plt.gca()
+
+    # Plot shadows in current figure
+    for i in range(len(shadow_edges)-1):
+        if i%2==0:
+            ax.axvspan(shadow_edges[i], shadow_edges[i+1], facecolor='gray', edgecolor='none', alpha=.3)
 
 def plot_fermenter_sensors(ferementer, global_df, resample):
     """
@@ -49,10 +72,14 @@ def plot_fermenter_sensors(ferementer, global_df, resample):
                   ylabel='Humedad [%]',
                   ax=ax2)
     
-
+    # Add legends
     ax1.legend(loc='center left',bbox_to_anchor=(1.15, 0.5))
     ax2.legend()
+
+    # Format figure
+    shade_day_night(global_df) 
     plt.tight_layout()
+
 
     #     figManager = plt.get_current_fig_manager()
     #     figManager.window.showMaximized()
@@ -110,10 +137,13 @@ def plot_fermenter_average(fermenter, global_df, resample):
     # Set legends of 
     ax1.legend(loc='center left',bbox_to_anchor=(1.15, 0.5))
     ax2.legend()
+
+    # Format figure
+    shade_day_night(global_df) # FIXME: The shading is working badly with this plot 
     plt.tight_layout()
     plt.show()
 
-def plot_fermenter_boxplot(fermenter, global_df):
+def plot_fermenter_violin(fermenter, global_df):
     """
     This function plots boxplots for the measures in every day for a specific fementer. It also plots ambient temperature and humidity.
 

@@ -1,3 +1,4 @@
+from turtle import color
 import matplotlib.pyplot as plt
 import seaborn as sn
 import numpy as np
@@ -7,6 +8,8 @@ import datetime
 from matplotlib import cm
 import scipy.interpolate as interp
 import matplotlib
+pd.options.mode.chained_assignment = None
+
 
 def shade_day_night(global_df):
     """
@@ -28,11 +31,11 @@ def shade_day_night(global_df):
     ax = plt.gca()
 
     # Plot shadows in current figure
-    for i in range(len(shadow_edges)-1):
+    for i in range(len(shadow_edges)-2):
         if i%2==0:
             ax.axvspan(shadow_edges[i], shadow_edges[i+1], facecolor='gray', edgecolor='none', alpha=.3)
 
-def plot_fermenter_sensors(ferementer, global_df, resample):
+def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
     """
     This function plots all the sensors of a given fermenter resampled by time. It also plots ambient temperature and humidity.
 
@@ -40,52 +43,50 @@ def plot_fermenter_sensors(ferementer, global_df, resample):
         fermenter (int): The fermenter to plot. Only positive integers.
         global_df (pandas.DataFrame): Dataframe with all required information
         resample (str): String specifying the frequency to resample data. Cannot be less than the original sampling frequency.
+        axis (matplotlib.axis) : Axis object where to make the plot
     """
     # Get specific fermenter data
-    fermenter_df = global_df[f'f{ferementer}'].resample(resample).mean()
+    # The offset is made to guarantee that the plot units are in seconds which make possible to draw day/night shading
+    fermenter_df = global_df[f'f{fermenter}'].resample(resample, offset='0h0min1s').mean()
     fermenter_df = fermenter_df.add_prefix('Sensor ')
     fermenter_df.index.name, fermenter_df.columns.name = None, None
     # Get ambient temperature data
-    t_amb_df = global_df['t_amb'].resample(resample).mean()
+    t_amb_df = global_df['t_amb'].resample(resample, offset='0h0min1s').mean()
     t_amb_df = t_amb_df.add_prefix('T-amb ')
     t_amb_df.index.name, t_amb_df.columns.name = None, None
 
     # Get ambient humidity data
-    h_amb_df = global_df['h_amb'].resample(resample).mean()
+    h_amb_df = global_df['h_amb'].resample(resample, offset='0h0min1s').mean()
     h_amb_df = h_amb_df.add_prefix('H-amb ')
     h_amb_df.index.name, h_amb_df.columns.name = None, None
 
-    # Plot ambient temperatures
-    ax1 = t_amb_df.plot(figsize=(8, 6))
-
     # Plot Fermenters
-    fermenter_df.plot( grid=True, title=f'Sensores de fermentador {ferementer}',
-                        xlim = (fermenter_df.index.min(), fermenter_df.index.max()),
-                        ylim = (10.0, 60.0),
-                        xlabel='Fecha-Hora',
-                        ylabel='Temperatura [$^oC$]',
-                        ax=ax1)
+    ax1 = fermenter_df.plot( xlim = (fermenter_df.index.min(), fermenter_df.index.max()), xlabel='Fecha-Hora', ax=axis)
+
+    # Plot ambient temperatures
+    t_amb_df.plot(ax=ax1, style='--', color=['k', 'gray'], grid=True,)
+
+    shade_day_night(global_df) 
+    plt.ylabel('Temperatura [$^oC$]', fontsize='x-large')
+    plt.xlabel('Fecha-Hora', fontsize='x-large')
+    plt.title(f'Sensores de fermentador {fermenter} cada {resample}', fontsize='x-large')
 
     # Plot humidity data
     ax2 = plt.twinx()
     h_amb_df.plot(ylim = (10.0, 100.0),
-                  ylabel='Humedad [%]',
-                  ax=ax2)
+                  ax=ax2, style='--', color=['b', 'c'])
+    plt.ylabel('Humedad ambiente [%]', fontsize='x-large')
+    ax2.spines['right'].set_color('b')
+    ax2.tick_params(axis='y', colors='b')
+    ax2.yaxis.label.set_color('b')
     
     # Add legends
-    ax1.legend(loc='center left',bbox_to_anchor=(1.15, 0.5))
-    ax2.legend()
+    ax1.legend(loc='center left',bbox_to_anchor=(1.15, 0.4))
+    ax2.legend(loc='best')
 
     # Format figure
-    shade_day_night(global_df) 
     plt.tight_layout()
 
-
-    #     figManager = plt.get_current_fig_manager()
-    #     figManager.window.showMaximized()
-    #     plt.savefig(rutaglobal+"/"+datetime.now().strftime("%m-%d-%Y-%H:%M:%S")+"F1.png", bbox_inches="tight")
-
-    plt.show()
 
 def plot_fermenter_average(fermenter, global_df, resample):
     """
@@ -100,48 +101,52 @@ def plot_fermenter_average(fermenter, global_df, resample):
     average_df = global_df.groupby(level=0, axis=1).mean()
     
     # Get plot dataframes for ambient temperature and humidity
-    t_amb_plot_df = average_df['t_amb'].resample(resample).mean()
-    h_amb_plot_df = average_df['h_amb'].resample(resample).mean()
+    # The offset is made to guarantee that the plot units are in seconds which make possible to draw day/night shading
+    t_amb_plot_df = average_df['t_amb'].resample(resample, offset='0h0min1s').mean()
+    h_amb_plot_df = average_df['h_amb'].resample(resample, offset='0h0min1s').mean()
     
     # Handle to plot all fermenters or just one
     if fermenter == -1:
         # Case to plot all fermenters
         plot_df = average_df.iloc[:,average_df.columns.str.contains('f')].resample(resample).mean()
+        std_df = None # Does not plot error bars when ploting all fermenters
         plot_df.columns = plot_df.columns.str.replace('f', 'Ferm. ') # Set names for plot labels
         title_str = 'Promedio de todos los fermentadores cada '+resample
     else:
         # Case to plot just one fermenter
-        plot_df = average_df[f'f{fermenter}'].resample(resample).mean()
+        plot_df = average_df[f'f{fermenter}'].resample(resample, offset='0h0min1s').mean()
+        # Compute standard deviation error bars
+        std_df = average_df[f'f{fermenter}'].resample(resample, offset='0h0min1s').std()
         plot_df.name = f'Ferm. {fermenter}'
         title_str = f'Promedio de fermentador {fermenter} cada '+ resample
 
-
     # Plot ambient temperatures
-    ax1 = t_amb_plot_df.plot(figsize=(8, 6), label='T-amb', style='--.k')
+    ax1 = t_amb_plot_df.plot(label='T-amb', style='--.k')
 
     # Plot Fermenters
-    plot_df.plot( grid=True, title=title_str,
-                        xlim = (plot_df.index.min(), plot_df.index.max()),
-                        ylim = (10.0, 60.0),
-                        xlabel='Fecha-Hora',
-                        ylabel='Temperatura [$^oC$]',
-                        ax=ax1,
-                        style='--.')
+    plot_df.plot(grid=True,
+                xlim = (plot_df.index.min(), plot_df.index.max()),
+                        ax=ax1, style='o-', yerr=std_df, capsize=4)
+    plt.xlabel('Fecha-Hora', fontsize='x-large')
+    plt.ylabel('Temperatura [$^oC$]', fontsize='x-large')
+    plt.title(title_str, fontsize='x-large')
+    shade_day_night(global_df)
 
     # Plot humidity data
     ax2 = plt.twinx()
     h_amb_plot_df.plot(ylim = (10.0, 100.0),
-                  ylabel='Humedad [%]',
                   ax=ax2, label='H-amb', style='--.b')
+    plt.ylabel('Humedad ambiente [%]', fontsize='x-large')
+    ax2.spines['right'].set_color('b')
+    ax2.tick_params(axis='y', colors='b')
+    ax2.yaxis.label.set_color('b')
     
     # Set legends of 
-    ax1.legend(loc='center left',bbox_to_anchor=(1.15, 0.5))
-    ax2.legend()
+    ax1.legend(loc='best')
 
     # Format figure
-    shade_day_night(global_df) # FIXME: The shading is working badly with this plot 
     plt.tight_layout()
-    plt.show()
+
 
 def plot_fermenter_violin(fermenter, global_df):
     """
@@ -153,28 +158,89 @@ def plot_fermenter_violin(fermenter, global_df):
     """
     # Get averages of sensors
     average_df = global_df.groupby(level=0, axis=1).mean()
+
+    # Declre day/night vector
+    hour_vec = ['0-6h', '6-12h', '12-18h', '18-24h']
+    # Declare day/night funciton
+    hour_fn = lambda x: hour_vec[int(x.time().strftime('%H')) // 6]
+
     # Create separate t-amb dataframe
-    t_amb_df = pd.DataFrame(average_df['t_amb'])
-    t_amb_df.insert(0, 'Día', t_amb_df.index.date)
-    t_amb_df.insert(2, 'Medida', 'T-amb')
-    t_amb_df.columns = t_amb_df.columns.str.replace('t_amb', 'Temperatura [$^oC$]')
+    th_amb_df = average_df[['t_amb', 'h_amb']]
+    th_amb_df.insert(0, 'Día', th_amb_df.index.date)
+    th_amb_df.insert(2, 'Hora', th_amb_df.index.map(hour_fn))
+    th_amb_df['day_hour'] = th_amb_df['Día'].map(lambda x: x.strftime("%Y-%m-%d")) + ' ' + th_amb_df['Hora']
+    th_amb_df = th_amb_df.groupby('day_hour', sort=False).mean()
+ 
     # Create separate fermenter dataframe
     fermenter_df = pd.DataFrame(average_df[f'f{fermenter}'])
     fermenter_df.insert(0, 'Día', average_df.index.date)
     fermenter_df.insert(2, 'Medida', f'Promedio Ferm. {fermenter}')
+    fermenter_df.insert(3, 'Hora', fermenter_df.index.map(hour_fn))
+    fermenter_df['day_hour'] = fermenter_df['Día'].map(lambda x: x.strftime("%Y-%m-%d")) + ' ' + fermenter_df['Hora']
     fermenter_df.columns = fermenter_df.columns.str.replace(f'f{fermenter}', 'Temperatura [$^oC$]')
-    # Create joint dataframe
-    joint_df = pd.concat([fermenter_df, t_amb_df], ignore_index=True)
+
+    # Get the labels for violin plot
+    labels = list(fermenter_df['day_hour'].unique())
+    labels = [x.split()[1] if x.split()[1] != '0-6h' else x for x in labels]
     
-    plt.figure()
-    sn.violinplot(data=joint_df, x='Día', y='Temperatura [$^oC$]', hue='Medida')
-    plt.xticks(rotation=45)
-    plt.xlabel('Día', fontsize='x-large')
-    plt.ylabel('Temperatura [$^oC$]', fontsize='x-large')
-    plt.title(f'Graficas de violin para fermentador {fermenter}', fontsize='xx-large')
-    plt.tight_layout()
+    # Plot violin plot and ambient temperature
+    sn.violinplot(data=fermenter_df, x='day_hour', y='Temperatura [$^oC$]', color='r', linewidth=0.7)
+    plt.plot(np.arange(len(labels)), th_amb_df['t_amb'], 'o--k', markersize=3, label = 'T ambiente', alpha=0.7)
+    # Format figure
+    plt.xlim([-1, len(labels)])
     plt.grid()
+    plt.xlabel('Día', fontsize='x-large')
+    plt.ylabel('Temperatura ambiente[$^oC$]', fontsize='x-large')
+    plt.xlabel('Fecha-Hora', fontsize='x-large')
+    plt.title(f'Graficas de violín para fermentador {fermenter} cada 6 horas', fontsize='x-large')
+    plt.xticks(ticks = np.arange(len(labels)), labels=labels, rotation=90)
+
+    # Plot humidity data
+    ax2 = plt.twinx()
+    plt.plot(np.arange(len(labels)), th_amb_df['h_amb'], 'o--b', markersize=3, label = 'H ambiente', alpha=0.7)
+    plt.ylabel('Humedad ambiente [%]', fontsize='x-large')
+    ax2.spines['right'].set_color('b')
+    ax2.tick_params(axis='y', colors='b')
+    ax2.yaxis.label.set_color('b')
+
+    plt.tight_layout()
+
+
+def plot_fermenter_complete( fermenter, global_df, freq, resample):
+    """
+    This function draws a figure with 3 plots:
+    1. All the sensors from a fermenter resampled if desired
+    2. The average temperature of the fermenter resampled if desired
+    3. A violin plot of the fermenter every 6 hours. Can not be resampled.
+
+    Args:
+        fermenter (int): Fermenter to plot. Positive integer.
+        global_df (pandas.DataFrame): Dataframe with all required information
+        freq (str): String specifying the sample frequency of the data
+        resample (str): String specifying the frequency to resample data. Cannot be less than the original sampling frequency.
+    """
+    fig = plt.figure(figsize=(14,8))
+
+    # Plot all sensors from a fermenter resampled
+    ax1 = plt.subplot(2,2,1)
+    plot_fermenter_sensors(fermenter, global_df, resample= freq, axis=ax1)
+
+    # Plot the fermenter average temperature resampled
+    plt.subplot(2,2,2)
+    plot_fermenter_average(fermenter, global_df, resample)
+
+    # Plot violin plots not resampled
+    plt.subplot(2,1,2)
+    plot_fermenter_violin(fermenter, global_df)
+
+    fig.suptitle(f'Comportamiento fermentador {fermenter}', fontsize='xx-large')
+
+    fig.tight_layout()
     plt.show()
+
+
+
+
 
 def plot_3d_profile(fermenter, global_df):
     """

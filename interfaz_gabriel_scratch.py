@@ -180,6 +180,7 @@ test_fermenters = 8
 test_sensors = 12
 test_start = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 test_end = (datetime.datetime.now() + datetime.timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
+test_freq = '30min'
 noise = 1
 start_noise = 2
 
@@ -189,7 +190,7 @@ sensor_list = [f'{i+1}' for i in range(test_sensors)]
 fermenter_columns = pd.MultiIndex.from_product([fermenter_list, sensor_list])
 amb_columns = pd.MultiIndex.from_product([['t_amb', 'h_amb'], ['1', '2']])
 test_columns = amb_columns.append(fermenter_columns) 
-test_index = pd.date_range(start=test_start, end = test_end, freq='10min')
+test_index = pd.date_range(start=test_start, end = test_end, freq=test_freq)
 
 
 # Generate test data
@@ -210,10 +211,11 @@ test_global_df = pd.DataFrame(test_data, index=test_index, columns=test_columns)
 # Set names 
 test_global_df.columns.names = [None, 'datetime']
 
-plot_fermenter_sensors(2, test_global_df, '10min')
-plot_fermenter_average(6, test_global_df, '1D')
-plot_fermenter_violin(6, test_global_df)
-plot_3d_profile(8, test_global_df)
+# plot_fermenter_sensors(2, test_global_df, '10min')
+# plot_fermenter_average(6, test_global_df, '1D')
+# plot_fermenter_violin(6, test_global_df, day_night=True)
+plot_fermenter_complete(6, test_global_df, freq=test_freq, resample= '1D')
+# plot_3d_profile(8, test_global_df)
 
 ##############################################################################
 ####################### End of Test code #####################################

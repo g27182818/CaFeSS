@@ -13,6 +13,7 @@ import serial, time, numpy as np
 import pandas as pd
 import os
 from plotting_functions import *
+from report_gen import make_report
 
 # Matplotlib set axis bellow
 plt.rcParams['axes.axisbelow'] = True
@@ -181,7 +182,7 @@ test_sensors = 12
 test_start = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 test_end = (datetime.datetime.now() + datetime.timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
 test_freq = '30min'
-noise = 1
+noise = 2
 start_noise = 2
 
 # Make multiindex columns and date rows for 14 days
@@ -214,8 +215,9 @@ test_global_df.columns.names = [None, 'datetime']
 # plot_fermenter_sensors(2, test_global_df, '10min')
 # plot_fermenter_average(6, test_global_df, '1D')
 # plot_fermenter_violin(6, test_global_df, day_night=True)
-plot_fermenter_complete(6, test_global_df, freq=test_freq, resample= '1D')
+# plot_fermenter_complete(6, test_global_df, freq=test_freq, resample= '1D')
 # plot_3d_profile(8, test_global_df)
+make_report(test_global_df, test_freq, resample='1D')
 
 ##############################################################################
 ####################### End of Test code #####################################

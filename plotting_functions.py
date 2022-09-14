@@ -206,7 +206,7 @@ def plot_fermenter_violin(fermenter, global_df):
     plt.tight_layout()
 
 
-def plot_fermenter_complete( fermenter, global_df, freq, resample):
+def plot_fermenter_complete(fermenter, global_df, freq, resample):
     """
     This function draws a figure with 3 plots:
     1. All the sensors from a fermenter resampled if desired
@@ -219,7 +219,7 @@ def plot_fermenter_complete( fermenter, global_df, freq, resample):
         freq (str): String specifying the sample frequency of the data
         resample (str): String specifying the frequency to resample data. Cannot be less than the original sampling frequency.
     """
-    fig = plt.figure(figsize=(14,8))
+    fig = plt.figure(figsize=(14,10))
 
     # Plot all sensors from a fermenter resampled
     ax1 = plt.subplot(2,2,1)
@@ -233,12 +233,17 @@ def plot_fermenter_complete( fermenter, global_df, freq, resample):
     plt.subplot(2,1,2)
     plot_fermenter_violin(fermenter, global_df)
 
-    fig.suptitle(f'Comportamiento fermentador {fermenter}', fontsize='xx-large')
+    fig.suptitle(f'Comportamiento Fermentador {fermenter}', fontsize='xx-large')
 
     fig.tight_layout()
-    plt.show()
 
+    # Creates dir to fermenter images if they do now exist
+    if not os.path.exists(os.path.join('data','ferm_current_state')):
+        os.makedirs(os.path.join('data','ferm_current_state'))
 
+    # Save fermenter plot
+    plt.savefig(os.path.join('data','ferm_current_state', f'f{fermenter}.png'), dpi=100)
+    plt.close()
 
 
 

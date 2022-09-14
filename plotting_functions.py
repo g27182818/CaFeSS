@@ -242,7 +242,7 @@ def plot_fermenter_complete(fermenter, global_df, freq, resample):
         os.makedirs(os.path.join('data','ferm_current_state'))
 
     # Save fermenter plot
-    plt.savefig(os.path.join('data','ferm_current_state', f'f{fermenter}.png'), dpi=100)
+    plt.savefig(os.path.join('data','ferm_current_state', f'f{fermenter}.png'), dpi=300)
     plt.close()
 
 

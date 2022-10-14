@@ -15,6 +15,8 @@ import os
 from plotting_functions import *
 from report_gen import make_report
 
+
+
 # Matplotlib set axis bellow
 plt.rcParams['axes.axisbelow'] = True
 
@@ -217,7 +219,7 @@ test_global_df.columns.names = [None, 'datetime']
 # plot_fermenter_violin(6, test_global_df, day_night=True)
 # plot_fermenter_complete(6, test_global_df, freq=test_freq, resample= '1D')
 # plot_3d_profile(8, test_global_df)
-make_report(test_global_df, test_freq, resample='1D')
+# make_report(test_global_df, test_freq, resample='1D')
 
 ##############################################################################
 ####################### End of Test code #####################################
@@ -227,17 +229,15 @@ make_report(test_global_df, test_freq, resample='1D')
 
 # Hacer que la interfaz arranque
 # Violin plot que pueda cuadrarse por dias, 12 horas y 6 horas
-# Poner shading de noche en las graficas    
-# Frecuencia de muestreo va a ser cada 30 minutos
-# Figuras de tamaño fijo
+# Poner shading de noche en las graficas
 # Desde la interfaz se debe poder escojer el inicio el final y la frecuencia de muestreo
 # Boton para camara terminca en tiempo real
 
-# ########################################################################################################################
-# #                                             Simple GUI Section                                                       #
-# ########################################################################################################################
+########################################################################################################################
+#                                             Simple GUI Section                                                       #
+########################################################################################################################
 
-# w,h=sg.Window.get_screen_size()
+w,h=sg.Window.get_screen_size()
     
 # layout = [
 #     [ sg.Text('', size=(300, 1), justification='center', font=("Helvetica", 5)),sg.Button('X', key='cerrar',size=(2, 1),font=("Helvetica", 5))],
@@ -274,258 +274,260 @@ make_report(test_global_df, test_freq, resample='1D')
 
 # window = sg.Window('Control Ambiental Fermentación', layout, location=(0,0), size=(w,h), resizable=True,finalize=True)
 
-# # Variables auxiliares
-# var=False
-# arranque = False
-# act=False
-# aviso =0
-# rutan = rutaglobal+"/notas"+datei.strftime("%m-%d-%Y-%H:%M:%S")+".txt"
-# outFile=open(rutan, "a")
 
-# # Ciclo de interfaz y lectura continuo
+
+# Variables auxiliares
+var=False
+arranque = False
+act=False
+aviso =0
+rutan = rutaglobal+"/notas"+datei.strftime("%m-%d-%Y-%H:%M:%S")+".txt"
+outFile=open(rutan, "a")
+
+# Ciclo de interfaz y lectura continuo
 # while True:
-#     # Propiedades de gui para manejar los eventos
-#     event, values = window.read(timeout = 10)
+    # Propiedades de gui para manejar los eventos
+    # event, values = window.read(timeout = 10)
 
-#     # Get boton de inicio
-#     if event == 'inicio':
-#         outFile=open(rutan, "a") # El archivo nunca se cierra durante la ejecucion
-#         arranque= True
-#         contdia = datetime.now() #- timedelta(days=7)
+    # # Get boton de inicio
+    # if event == 'inicio':
+    #     outFile=open(rutan, "a") # El archivo nunca se cierra durante la ejecucion
+    #     arranque= True
+    #     contdia = datetime.now() #- timedelta(days=7)
     
-#     # Chequear si se deben incluir los valores de temperatura y humedad
-#     if not(values is None):
-#         checkamb =values['checkamb']
+    # # Chequear si se deben incluir los valores de temperatura y humedad
+    # if not(values is None):
+    #     checkamb =values['checkamb']
     
-#     # Actualizar variable auxiliar relacionada con la temperatura ambiente
-#     if checkamb:
-#         incluir = True
-#     else:
-#         incluir = False
+    # # Actualizar variable auxiliar relacionada con la temperatura ambiente
+    # if checkamb:
+    #     incluir = True
+    # else:
+    #     incluir = False
     
-#     # verificar para poner en estado de lectura
-#     if((var==False and contador>0)and act==False):
-#             window.Element('lectura').Update('')
-#             act=True
+    # # verificar para poner en estado de lectura
+    # if((var==False and contador>0)and act==False):
+    #         window.Element('lectura').Update('')
+    #         act=True
     
 
-#     if (((((int(time.time()-instanteInicial))/60)>1.1) or contador==0)and arranque==True):
+    # if (((((int(time.time()-instanteInicial))/60)>1.1) or contador==0)and arranque==True):
 
-#         # Actualiza variables auxiliares
-#         if(contador==0):
-#             window.Element('lectura').Update('Sin datos')
-#         instanteInicial = time.time()
-#         dif = datetime.now()-contdia
-#         dias = dif.days
-#         window.Element('dia').Update('Día # ' +str(dias))
+    #     # Actualiza variables auxiliares
+    #     if(contador==0):
+    #         window.Element('lectura').Update('Sin datos')
+    #     instanteInicial = time.time()
+    #     dif = datetime.now()-contdia
+    #     dias = dif.days
+    #     window.Element('dia').Update('Día # ' +str(dias))
 
-#         # Manda mensaje al arduino
-#         arduino1.write(str.encode("SIU"))
-#         print("Escribiendo")
-#         contador = contador+1
-#         var = True
+    #     # Manda mensaje al arduino
+    #     arduino1.write(str.encode("SIU"))
+    #     print("Escribiendo")
+    #     contador = contador+1
+    #     var = True
 
-#     if ((((time.time()-instanteInicial)/60)>0.9) and var==True):
-#         window.Element('lectura').Update('En lectura')
-#     if (((((time.time()-instanteInicial))/60)>0.93) and var==True):
-#         print("Leyendo")
+    # if ((((time.time()-instanteInicial)/60)>0.9) and var==True):
+    #     window.Element('lectura').Update('En lectura')
+    # if (((((time.time()-instanteInicial))/60)>0.93) and var==True):
+    #     print("Leyendo")
         
-#         lecturadatos()
-#         var= False
-#         act=False
-#     if event == 'buttonnota':
-#         nota = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")+"  "+values['multiline']
-#         outFile.write(nota)
-#         window.Element('multiline').Update('')
-#         sg.popup_timed('Nota Guardada', 'Su nota fue almacenada en la ubicación elegida!',keep_on_top=True)
+    #     lecturadatos()
+    #     var= False
+    #     act=False
+    # if event == 'buttonnota':
+    #     nota = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")+"  "+values['multiline']
+    #     outFile.write(nota)
+    #     window.Element('multiline').Update('')
+    #     sg.popup_timed('Nota Guardada', 'Su nota fue almacenada en la ubicación elegida!',keep_on_top=True)
 
         
-#     if event == 'buttonfile':
-#        folder=  sg.popup_get_folder('Porfavor ingrese una nueva ubicación')
-#        if folder == 'OK':
-#            rutaglobal = folder
-#            window.Element('fileinput').Update(rutaglobal)
-#            rutan = rutaglobal+"/notas"+datei.strftime("%m-%d-%Y-%H:%M:%S")+".txt"
-#            outFile.close()
-#            outFile=open(rutan, "a")
+    # if event == 'buttonfile':
+    #    folder=  sg.popup_get_folder('Porfavor ingrese una nueva ubicación')
+    #    if folder == 'OK':
+    #        rutaglobal = folder
+    #        window.Element('fileinput').Update(rutaglobal)
+    #        rutan = rutaglobal+"/notas"+datei.strftime("%m-%d-%Y-%H:%M:%S")+".txt"
+    #        outFile.close()
+    #        outFile=open(rutan, "a")
 
        
-#     if dias >14:
-#         aviso += 1
+    # if dias >14:
+    #     aviso += 1
     
     
-#     if (event == 'fin' or aviso==1) or (event in (sg.WIN_CLOSED, 'cerrar')):       
-#         seg= sg.popup_ok_cancel('¿Está seguro de finalizar la lectura de datos?',keep_on_top=True)  # Shows OK and Cancel buttons
-#         if seg == 'OK':
-#             print('fin')
-#             window.Element('dia').Update('Día # ')
-#             window.Element('lectura').Update('')
-#             window.Element('Tamb').Update('  --  °C ')
-#             window.Element('Hamb').Update('  --  %')
-#             window.Element('Tfer').Update(' --  °C')
-#             outFile.close()
-#             arranque= False
-#             contador=0
-#             var=False
+    # if (event == 'fin' or aviso==1) or (event in (sg.WIN_CLOSED, 'cerrar')):       
+    #     seg= sg.popup_ok_cancel('¿Está seguro de finalizar la lectura de datos?',keep_on_top=True)  # Shows OK and Cancel buttons
+    #     if seg == 'OK':
+    #         print('fin')
+    #         window.Element('dia').Update('Día # ')
+    #         window.Element('lectura').Update('')
+    #         window.Element('Tamb').Update('  --  °C ')
+    #         window.Element('Hamb').Update('  --  %')
+    #         window.Element('Tfer').Update(' --  °C')
+    #         outFile.close()
+    #         arranque= False
+    #         contador=0
+    #         var=False
 
-#             if len(hdh1)!=0:
-#                 df= pd.DataFrame([key for key in psg.keys()], columns=['Fecha y hora'])
-#                 df['H ambiente 1'] = hdh1
-#                 df['T ambiente 1'] = tdh1
-#                 df['H ambiente 2'] = hdh2
-#                 df['T ambiente 2'] = tdh2
-#                 df['Temp 11'] = ds11
-#                 df['Temp 12'] = ds12
-#                 df['Temp 13'] = ds13
-#                 df['Temp 14'] = ds14
-#                 df['Temp 15'] = ds15
-#                 df['Temp 16'] = ds16
-#                 df['Temp 17'] = ds17
-#                 df['Temp 18'] = ds18
-#                 df['Temp 19'] = ds19
-#                 df['Temp 110'] = ds110
-#                 df['Temp 111'] = ds111
-#                 df['Temp 112'] = ds112
+    #         if len(hdh1)!=0:
+    #             df= pd.DataFrame([key for key in psg.keys()], columns=['Fecha y hora'])
+    #             df['H ambiente 1'] = hdh1
+    #             df['T ambiente 1'] = tdh1
+    #             df['H ambiente 2'] = hdh2
+    #             df['T ambiente 2'] = tdh2
+    #             df['Temp 11'] = ds11
+    #             df['Temp 12'] = ds12
+    #             df['Temp 13'] = ds13
+    #             df['Temp 14'] = ds14
+    #             df['Temp 15'] = ds15
+    #             df['Temp 16'] = ds16
+    #             df['Temp 17'] = ds17
+    #             df['Temp 18'] = ds18
+    #             df['Temp 19'] = ds19
+    #             df['Temp 110'] = ds110
+    #             df['Temp 111'] = ds111
+    #             df['Temp 112'] = ds112
 
-#                 ruta1 = rutaglobal+"/datos"+datei.strftime("%m-%d-%Y-%H:%M:%S")+".xlsx"
-#                 df2= pd.DataFrame(diitas, columns=['Día de Fermentación'])
+    #             ruta1 = rutaglobal+"/datos"+datei.strftime("%m-%d-%Y-%H:%M:%S")+".xlsx"
+    #             df2= pd.DataFrame(diitas, columns=['Día de Fermentación'])
              
-#                 df2['H ambiente 1'] = hdhd1 
-#                 df2['T ambiente 1'] = tdhd1
-#                 df2['H ambiente 2'] = hdhd2
-#                 df2['T ambiente 2'] = hdhd2
-#                 df2['Temp 11'] = dsd11
-#                 df2['Temp 12'] = dsd12
-#                 df2['Temp 13'] = dsd13
-#                 df2['Temp 14'] = dsd14
-#                 df2['Temp 15'] = dsd15
-#                 df2['Temp 16'] = dsd16
-#                 df2['Temp 17'] = dsd17
-#                 df2['Temp 18'] = dsd18
-#                 df2['Temp 19'] = dsd19
-#                 df2['Temp 110'] = dsd110
-#                 df2['Temp 111'] = dsd111
-#                 df2['Temp 112'] = dsd112
-#                 writer = pd.ExcelWriter(ruta1, engine = 'openpyxl')
-#                 df.to_excel(writer, sheet_name='Total_Datos_Fermentacion')
-#                 df2.to_excel(writer, sheet_name='Rendimiento Semanal')
-#                 writer.save()
-#                 writer.close()             #ruta1 = "/Users/SANTIAGO/Desktop/SANTIAGO/Uniandes/Maestría/Temperatura/Agua Calentador 2/rutaa.xlsx"
+    #             df2['H ambiente 1'] = hdhd1 
+    #             df2['T ambiente 1'] = tdhd1
+    #             df2['H ambiente 2'] = hdhd2
+    #             df2['T ambiente 2'] = hdhd2
+    #             df2['Temp 11'] = dsd11
+    #             df2['Temp 12'] = dsd12
+    #             df2['Temp 13'] = dsd13
+    #             df2['Temp 14'] = dsd14
+    #             df2['Temp 15'] = dsd15
+    #             df2['Temp 16'] = dsd16
+    #             df2['Temp 17'] = dsd17
+    #             df2['Temp 18'] = dsd18
+    #             df2['Temp 19'] = dsd19
+    #             df2['Temp 110'] = dsd110
+    #             df2['Temp 111'] = dsd111
+    #             df2['Temp 112'] = dsd112
+    #             writer = pd.ExcelWriter(ruta1, engine = 'openpyxl')
+    #             df.to_excel(writer, sheet_name='Total_Datos_Fermentacion')
+    #             df2.to_excel(writer, sheet_name='Rendimiento Semanal')
+    #             writer.save()
+    #             writer.close()             #ruta1 = "/Users/SANTIAGO/Desktop/SANTIAGO/Uniandes/Maestría/Temperatura/Agua Calentador 2/rutaa.xlsx"
             
-#             # Inicializar todo en ceroz una vez mas para evitar errores
-#             ds11 = np.zeros((0,1))
-#             ds12 = np.zeros((0,1))
-#             ds13 = np.zeros((0,1))
-#             ds14 = np.zeros((0,1))
-#             ds15 = np.zeros((0,1))
-#             ds16 = np.zeros((0,1))
-#             ds17 = np.zeros((0,1))
-#             ds18 = np.zeros((0,1))
-#             ds19 = np.zeros((0,1))
-#             ds110 = np.zeros((0,1))
-#             ds111 = np.zeros((0,1))
-#             ds112 = np.zeros((0,1))
-#             hdh1 = np.zeros((0,1))
-#             tdh1 = np.zeros((0,1))
+    #         # Inicializar todo en ceroz una vez mas para evitar errores
+    #         ds11 = np.zeros((0,1))
+    #         ds12 = np.zeros((0,1))
+    #         ds13 = np.zeros((0,1))
+    #         ds14 = np.zeros((0,1))
+    #         ds15 = np.zeros((0,1))
+    #         ds16 = np.zeros((0,1))
+    #         ds17 = np.zeros((0,1))
+    #         ds18 = np.zeros((0,1))
+    #         ds19 = np.zeros((0,1))
+    #         ds110 = np.zeros((0,1))
+    #         ds111 = np.zeros((0,1))
+    #         ds112 = np.zeros((0,1))
+    #         hdh1 = np.zeros((0,1))
+    #         tdh1 = np.zeros((0,1))
 
-#             hdhd1 = np.zeros((14,))
-#             tdhd1 = np.zeros((14,))
-#             hdhd2 = np.zeros((14,))
-#             tdhd2 = np.zeros((14,))
-#             dsd11 = np.zeros((14,))
-#             dsd12 = np.zeros((14,))
-#             dsd13 = np.zeros((14,))
-#             dsd14 = np.zeros((14,))
-#             dsd15 = np.zeros((14,))
-#             dsd16 = np.zeros((14,))
-#             dsd17 = np.zeros((14,))
-#             dsd18 = np.zeros((14,))
-#             dsd19 = np.zeros((14,))
-#             dsd110 = np.zeros((14,))
-#             dsd111 = np.zeros((14,))
-#             dsd112 = np.zeros((14,))
-#             ds21 = np.zeros((0,1))
-#             ds22 = np.zeros((0,1))
-#             ds23 = np.zeros((0,1))
-#             ds24 = np.zeros((0,1))
-#             ds25 = np.zeros((0,1))
-#             ds26 = np.zeros((0,1))
-#             hdh2 = np.zeros((0,1))
-#             tdh2 = np.zeros((0,1))
+    #         hdhd1 = np.zeros((14,))
+    #         tdhd1 = np.zeros((14,))
+    #         hdhd2 = np.zeros((14,))
+    #         tdhd2 = np.zeros((14,))
+    #         dsd11 = np.zeros((14,))
+    #         dsd12 = np.zeros((14,))
+    #         dsd13 = np.zeros((14,))
+    #         dsd14 = np.zeros((14,))
+    #         dsd15 = np.zeros((14,))
+    #         dsd16 = np.zeros((14,))
+    #         dsd17 = np.zeros((14,))
+    #         dsd18 = np.zeros((14,))
+    #         dsd19 = np.zeros((14,))
+    #         dsd110 = np.zeros((14,))
+    #         dsd111 = np.zeros((14,))
+    #         dsd112 = np.zeros((14,))
+    #         ds21 = np.zeros((0,1))
+    #         ds22 = np.zeros((0,1))
+    #         ds23 = np.zeros((0,1))
+    #         ds24 = np.zeros((0,1))
+    #         ds25 = np.zeros((0,1))
+    #         ds26 = np.zeros((0,1))
+    #         hdh2 = np.zeros((0,1))
+    #         tdh2 = np.zeros((0,1))
 
-#             ds31 = np.zeros((0,1))
-#             ds32 = np.zeros((0,1))
-#             ds33 = np.zeros((0,1))
-#             ds34 = np.zeros((0,1))
-#             ds35 = np.zeros((0,1))
-#             ds36 = np.zeros((0,1))
-#             hdh3 = np.zeros((0,1))
-#             tdh3 = np.zeros((0,1))
+    #         ds31 = np.zeros((0,1))
+    #         ds32 = np.zeros((0,1))
+    #         ds33 = np.zeros((0,1))
+    #         ds34 = np.zeros((0,1))
+    #         ds35 = np.zeros((0,1))
+    #         ds36 = np.zeros((0,1))
+    #         hdh3 = np.zeros((0,1))
+    #         tdh3 = np.zeros((0,1))
 
-#             ds41 = np.zeros((0,1))
-#             ds42 = np.zeros((0,1))
-#             ds43 = np.zeros((0,1))
-#             ds44 = np.zeros((0,1))
-#             ds45 = np.zeros((0,1))
-#             ds46 = np.zeros((0,1))
-#             hdh4 = np.zeros((0,1))
-#             tdh4 = np.zeros((0,1))
+    #         ds41 = np.zeros((0,1))
+    #         ds42 = np.zeros((0,1))
+    #         ds43 = np.zeros((0,1))
+    #         ds44 = np.zeros((0,1))
+    #         ds45 = np.zeros((0,1))
+    #         ds46 = np.zeros((0,1))
+    #         hdh4 = np.zeros((0,1))
+    #         tdh4 = np.zeros((0,1))
 
-#             ds51 = np.zeros((0,1))
-#             ds52 = np.zeros((0,1))
-#             ds53 = np.zeros((0,1))
-#             ds54 = np.zeros((0,1))
-#             ds55 = np.zeros((0,1))
-#             ds56 = np.zeros((0,1))
-#             hdh5 = np.zeros((0,1))
-#             tdh5 = np.zeros((0,1))
+    #         ds51 = np.zeros((0,1))
+    #         ds52 = np.zeros((0,1))
+    #         ds53 = np.zeros((0,1))
+    #         ds54 = np.zeros((0,1))
+    #         ds55 = np.zeros((0,1))
+    #         ds56 = np.zeros((0,1))
+    #         hdh5 = np.zeros((0,1))
+    #         tdh5 = np.zeros((0,1))
 
-#             ds61 = np.zeros((0,1))
-#             ds62 = np.zeros((0,1))
-#             ds63 = np.zeros((0,1))
-#             ds64 = np.zeros((0,1))
-#             ds65 = np.zeros((0,1))
-#             ds66 = np.zeros((0,1))
-#             hdh6 = np.zeros((0,1))
-#             tdh6 = np.zeros((0,1))
+    #         ds61 = np.zeros((0,1))
+    #         ds62 = np.zeros((0,1))
+    #         ds63 = np.zeros((0,1))
+    #         ds64 = np.zeros((0,1))
+    #         ds65 = np.zeros((0,1))
+    #         ds66 = np.zeros((0,1))
+    #         hdh6 = np.zeros((0,1))
+    #         tdh6 = np.zeros((0,1))
 
-#             ds71 = np.zeros((0,1))
-#             ds72 = np.zeros((0,1))
-#             ds73 = np.zeros((0,1))
-#             ds74 = np.zeros((0,1))
-#             ds75 = np.zeros((0,1))
-#             ds76 = np.zeros((0,1))
-#             hdh7 = np.zeros((0,1))
-#             tdh7 = np.zeros((0,1))
+    #         ds71 = np.zeros((0,1))
+    #         ds72 = np.zeros((0,1))
+    #         ds73 = np.zeros((0,1))
+    #         ds74 = np.zeros((0,1))
+    #         ds75 = np.zeros((0,1))
+    #         ds76 = np.zeros((0,1))
+    #         hdh7 = np.zeros((0,1))
+    #         tdh7 = np.zeros((0,1))
 
-#             ds81 = np.zeros((0,1))
-#             ds82 = np.zeros((0,1))
-#             ds83 = np.zeros((0,1))
-#             ds84 = np.zeros((0,1))
-#             ds85 = np.zeros((0,1))
-#             ds86 = np.zeros((0,1))
-#             hdh8 = np.zeros((0,1))
-#             tdh8 = np.zeros((0,1))
+    #         ds81 = np.zeros((0,1))
+    #         ds82 = np.zeros((0,1))
+    #         ds83 = np.zeros((0,1))
+    #         ds84 = np.zeros((0,1))
+    #         ds85 = np.zeros((0,1))
+    #         ds86 = np.zeros((0,1))
+    #         hdh8 = np.zeros((0,1))
+    #         tdh8 = np.zeros((0,1))
 
-#             ds91 = np.zeros((0,1))
-#             ds92 = np.zeros((0,1))
-#             ds93 = np.zeros((0,1))
-#             ds94 = np.zeros((0,1))
-#             ds95 = np.zeros((0,1))
-#             ds96 = np.zeros((0,1))
-#             hdh9 = np.zeros((0,1))
-#             tdh9 = np.zeros((0,1))
-#             if event in (sg.WIN_CLOSED, 'cerrar'):
-#                 arduino1.close() #Finalizamos la comunicacion
-#                 break    
+    #         ds91 = np.zeros((0,1))
+    #         ds92 = np.zeros((0,1))
+    #         ds93 = np.zeros((0,1))
+    #         ds94 = np.zeros((0,1))
+    #         ds95 = np.zeros((0,1))
+    #         ds96 = np.zeros((0,1))
+    #         hdh9 = np.zeros((0,1))
+    #         tdh9 = np.zeros((0,1))
+    #         if event in (sg.WIN_CLOSED, 'cerrar'):
+    #             arduino1.close() #Finalizamos la comunicacion
+    #             break    
 
 
    
-#     if event == 'buttongraficar':
-#         fer = int(values['combofer'].split[-1])
-#         draw_plot(fer)
+    # if event == 'buttongraficar':
+    #     fer = int(values['combofer'].split[-1])
+    #     draw_plot(fer)
 
-#     if event == 'buttondesempeño':
-#         draw_rend()
+    # if event == 'buttondesempeño':
+    #     draw_rend()
 
 # window.close()

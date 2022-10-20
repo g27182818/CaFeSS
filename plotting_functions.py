@@ -8,6 +8,7 @@ import datetime
 from matplotlib import cm
 import scipy.interpolate as interp
 import matplotlib
+import matplotlib.patches as mpatches
 pd.options.mode.chained_assignment = None
 
 
@@ -48,7 +49,7 @@ def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
     # Get specific fermenter data
     # The offset is made to guarantee that the plot units are in seconds which make possible to draw day/night shading
     fermenter_df = global_df[f'f{fermenter}'].resample(resample, offset='0h0min1s').mean()
-    fermenter_df = fermenter_df.add_prefix('Sensor ')
+    fermenter_df = fermenter_df.add_prefix('T Sensor ')
     fermenter_df.index.name, fermenter_df.columns.name = None, None
     # Get ambient temperature data
     t_amb_df = global_df['t_amb'].resample(resample, offset='0h0min1s').mean()
@@ -81,7 +82,15 @@ def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
     ax2.yaxis.label.set_color('b')
     
     # Add legends
-    ax1.legend(loc='center left',bbox_to_anchor=(1.15, 0.4))
+    # Get day and night patches handles
+    night_patch = mpatches.Patch(facecolor='grey', edgecolor='none', alpha=.3, label='Noche')
+    day_patch = mpatches.Patch(facecolor='white', edgecolor='black', label='Día')
+    handles = [day_patch, night_patch]
+    # Get automatic legends from axis 1
+    automatic_handles, labels = ax1.get_legend_handles_labels()
+    # Put all handles together
+    handles.extend(automatic_handles)
+    ax1.legend(handles=handles, loc='center left',bbox_to_anchor=(1.15, 0.49))
     ax2.legend(loc='best')
 
     # Format figure
@@ -141,8 +150,20 @@ def plot_fermenter_average(fermenter, global_df, resample):
     ax2.tick_params(axis='y', colors='b')
     ax2.yaxis.label.set_color('b')
     
-    # Set legends of 
-    ax1.legend(loc='best')
+
+    # Add legends
+    # Get day and night patches handles
+    night_patch = mpatches.Patch(facecolor='grey', edgecolor='none', alpha=.3, label='Noche')
+    day_patch = mpatches.Patch(facecolor='white', edgecolor='black', label='Día')
+    handles = [day_patch, night_patch]
+    # Get automatic legends from axis 1 and 2
+    automatic_handles1, _ = ax1.get_legend_handles_labels()
+    automatic_handles2, _ = ax2.get_legend_handles_labels()
+    # Join all legend handles
+    handles.extend(automatic_handles2)
+    handles.extend(automatic_handles1)
+    # Set legends of the plot 
+    ax1.legend(handles = handles, loc = 'best', title = 'Promedios', framealpha=1.0)
 
     # Format figure
     plt.tight_layout()
@@ -181,19 +202,25 @@ def plot_fermenter_violin(fermenter, global_df):
 
     # Get the labels for violin plot
     labels = list(fermenter_df['day_hour'].unique())
-    labels = [x.split()[1] if x.split()[1] != '0-6h' else x for x in labels]
-    
+    # Modify labels to not show dates alwas
+    mod_labels = [x.split()[1] if x.split()[1] != '0-6h' else x for x in labels]
+
+    # Define color pallete for day and night
+    palette = {x:('white' if (x.split('-')[-1]=='12h') or (x.split('-')[-1]=='18h') else 'gray') for x in labels}
+
     # Plot violin plot and ambient temperature
-    sn.violinplot(data=fermenter_df, x='day_hour', y='Temperatura [$^oC$]', color='r', linewidth=0.7)
+    sn.violinplot(data=fermenter_df, x='day_hour', y='Temperatura [$^oC$]', linewidth=0.7, palette=palette)
     plt.plot(np.arange(len(labels)), th_amb_df['t_amb'], 'o--k', markersize=3, label = 'T ambiente', alpha=0.7)
     # Format figure
     plt.xlim([-1, len(labels)])
     plt.grid()
     plt.xlabel('Día', fontsize='x-large')
-    plt.ylabel('Temperatura ambiente[$^oC$]', fontsize='x-large')
+    plt.ylabel('Temperatura [$^oC$]', fontsize='x-large')
     plt.xlabel('Fecha-Hora', fontsize='x-large')
     plt.title(f'Graficas de violín para fermentador {fermenter} cada 6 horas', fontsize='x-large')
-    plt.xticks(ticks = np.arange(len(labels)), labels=labels, rotation=90)
+    plt.xticks(ticks = np.arange(len(mod_labels)), labels=mod_labels, rotation=90)
+    # Get axis 1
+    ax1 = plt.gca()
 
     # Plot humidity data
     ax2 = plt.twinx()
@@ -202,6 +229,20 @@ def plot_fermenter_violin(fermenter, global_df):
     ax2.spines['right'].set_color('b')
     ax2.tick_params(axis='y', colors='b')
     ax2.yaxis.label.set_color('b')
+
+    # Add legends
+    # Get day and night patches handles
+    night_patch = mpatches.Patch(facecolor='grey', edgecolor='black', label='Noche')
+    day_patch = mpatches.Patch(facecolor='white', edgecolor='black', label='Día')
+    handles = [day_patch, night_patch]
+    # Get automatic Handles
+    automatic_handles1, _ = ax1.get_legend_handles_labels()
+    automatic_handles2, _ = ax2.get_legend_handles_labels()
+    # Join all Handles
+    handles.extend(automatic_handles1)
+    handles.extend(automatic_handles2)
+    # Draw legend
+    ax1.legend(handles=handles, loc='best', framealpha=1.0)
 
     plt.tight_layout()
 

@@ -217,7 +217,7 @@ test_global_df.columns.names = [None, 'datetime']
 # plot_fermenter_sensors(2, test_global_df, '10min')
 # plot_fermenter_average(6, test_global_df, '1D')
 # plot_fermenter_violin(6, test_global_df, day_night=True)
-# plot_fermenter_complete(6, test_global_df, freq=test_freq, resample= '1D')
+plot_fermenter_complete(6, test_global_df, freq=test_freq, resample= '1D')
 # plot_3d_profile(8, test_global_df)
 # make_report(test_global_df, test_freq, resample='1D')
 
@@ -237,7 +237,7 @@ test_global_df.columns.names = [None, 'datetime']
 #                                             Simple GUI Section                                                       #
 ########################################################################################################################
 
-w,h=sg.Window.get_screen_size()
+# w,h=sg.Window.get_screen_size()
     
 # layout = [
 #     [ sg.Text('', size=(300, 1), justification='center', font=("Helvetica", 5)),sg.Button('X', key='cerrar',size=(2, 1),font=("Helvetica", 5))],
@@ -277,12 +277,12 @@ w,h=sg.Window.get_screen_size()
 
 
 # Variables auxiliares
-var=False
-arranque = False
-act=False
-aviso =0
-rutan = rutaglobal+"/notas"+datei.strftime("%m-%d-%Y-%H:%M:%S")+".txt"
-outFile=open(rutan, "a")
+# var=False
+# arranque = False
+# act=False
+# aviso =0
+# rutan = rutaglobal+"/notas"+datei.strftime("%m-%d-%Y-%H:%M:%S")+".txt"
+# outFile=open(rutan, "a")
 
 # Ciclo de interfaz y lectura continuo
 # while True:

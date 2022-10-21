@@ -264,11 +264,11 @@ def plot_fermenter_complete(fermenter, global_df, freq, resample):
 
     # Plot all sensors from a fermenter resampled
     ax1 = plt.subplot(2,2,1)
-    plot_fermenter_sensors(fermenter, global_df, resample= freq, axis=ax1)
+    plot_fermenter_sensors(fermenter, global_df, resample = freq, axis=ax1)
 
     # Plot the fermenter average temperature resampled
     plt.subplot(2,2,2)
-    plot_fermenter_average(fermenter, global_df, resample)
+    plot_fermenter_average(fermenter, global_df, resample = resample)
 
     # Plot violin plots not resampled
     plt.subplot(2,1,2)

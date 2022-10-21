@@ -13,7 +13,6 @@ import serial, time, numpy as np
 import pandas as pd
 import os
 from plotting_functions import *
-from test_functions import *
 from report_gen import make_report
 
 
@@ -145,7 +144,20 @@ def lecturadatos(global_df, line):
     return global_df
 
 
-
+# Code to generate a test line
+def generate_test_line(num_fer):
+    test_str = ''
+    # Simulate test ambient temperature and humidity
+    t_amb = np.round(10*np.random.rand(2)+20, 2)
+    h_amb = np.round(20*np.random.rand(2)+60, 2)
+    test_str = test_str + f't_amb,{t_amb[0]},{t_amb[1]},h_amb,{h_amb[0]},{h_amb[1]},'
+    # Simulate fermenters sensors
+    for i in range(num_fer):
+        temp_list = np.round(10*np.random.rand(12)+20, 2)
+        test_str = test_str + f'f{i+1}' if i == 0 else test_str + f',f{i+1}'
+        for i in range(len(temp_list)):
+            test_str = test_str + ',' + str(temp_list[i])   
+    return test_str
 
 ##############################################################################
 ####################### Test code ############################################
@@ -165,21 +177,59 @@ def lecturadatos(global_df, line):
 #     time.sleep(1)
 
 
-test_df = generate_test_df(fermenters = 8, sensors = 12, days = 14, freq = '30min', general_noise = 2, start_noise = 2)
+# Make test for 14 days
+# Test parameters
+test_fermenters = 8
+test_sensors = 12
+test_start = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+test_end = (datetime.datetime.now() + datetime.timedelta(days=14)).strftime("%Y-%m-%d %H:%M:%S")
+test_freq = '30min'
+noise = 2
+start_noise = 2
 
-# plot_fermenter_sensors(2, test_df, '10min')
-# plot_fermenter_average(6, test_df, '1D')
-# plot_fermenter_violin(6, test_df, day_night=True)
-plot_fermenter_complete(6, test_df, freq='30min', resample= '1D')
-# plot_3d_profile(8, test_df)
-# make_report(test_df, test_freq, resample='1D')
+# Make multiindex columns and date rows for 14 days
+fermenter_list = [f'f{i+1}' for i in range(test_fermenters)]
+sensor_list = [f'{i+1}' for i in range(test_sensors)]
+fermenter_columns = pd.MultiIndex.from_product([fermenter_list, sensor_list])
+amb_columns = pd.MultiIndex.from_product([['t_amb', 'h_amb'], ['1', '2']])
+test_columns = amb_columns.append(fermenter_columns) 
+test_index = pd.date_range(start=test_start, end = test_end, freq=test_freq)
+
+
+# Generate test data
+test_time = np.linspace(0, 5, len(test_index))
+test_fermenter_temps = (20 + 30*(1-np.exp(-test_time))).reshape((-1,1))
+test_fermenter_matrix = test_fermenter_temps + np.random.randn(1, test_fermenters*test_sensors)*start_noise
+
+test_t_amb_matrix = test_fermenter_temps + np.random.randn(1, 2)*start_noise
+test_h_amb_matrix = (50 + 30*(1-np.exp(-test_time))).reshape((-1,1)) + np.random.randn(1, 2)*start_noise
+
+test_matrices = [test_t_amb_matrix, test_h_amb_matrix, test_fermenter_matrix]
+test_matrices = [mat + np.random.randn(mat.shape[0], mat.shape[1])*noise for mat in test_matrices] # Add noise
+# Join test data
+test_data = np.concatenate(tuple(test_matrices), axis=1)
+
+# Declare test_global_df
+test_global_df = pd.DataFrame(test_data, index=test_index, columns=test_columns)
+# Set names 
+test_global_df.columns.names = [None, 'datetime']
+
+# plot_fermenter_sensors(2, test_global_df, '10min')
+# plot_fermenter_average(6, test_global_df, '1D')
+# plot_fermenter_violin(6, test_global_df, day_night=True)
+plot_fermenter_complete(6, test_global_df, freq=test_freq, resample= '1D')
+# plot_3d_profile(8, test_global_df)
+# make_report(test_global_df, test_freq, resample='1D')
 
 ##############################################################################
 ####################### End of Test code #####################################
 ##############################################################################
 
 
+
+# Hacer que la interfaz arranque
 # Violin plot que pueda cuadrarse por dias, 12 horas y 6 horas
+# Poner shading de noche en las graficas
 # Desde la interfaz se debe poder escojer el inicio el final y la frecuencia de muestreo
 # Boton para camara terminca en tiempo real
 

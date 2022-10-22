@@ -36,6 +36,7 @@ def shade_day_night(global_df):
         if i%2==0:
             ax.axvspan(shadow_edges[i], shadow_edges[i+1], facecolor='gray', edgecolor='none', alpha=.3)
 
+
 def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
     """
     This function plots all the sensors of a given fermenter resampled by time. It also plots ambient temperature and humidity.
@@ -65,7 +66,7 @@ def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
     ax1 = fermenter_df.plot( xlim = (fermenter_df.index.min(), fermenter_df.index.max()), xlabel='Fecha-Hora', ax=axis)
 
     # Plot ambient temperatures
-    t_amb_df.plot(ax=ax1, style='--', color=['k', 'gray'], grid=True,)
+    t_amb_df.plot(ax=ax1, style='--', color=['k', 'gray'], grid=True, ylim = (0.0, 60.0))
 
     shade_day_night(global_df) 
     plt.ylabel('Temperatura [$^oC$]', fontsize='x-large')
@@ -74,7 +75,7 @@ def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
 
     # Plot humidity data
     ax2 = plt.twinx()
-    h_amb_df.plot(ylim = (10.0, 100.0),
+    h_amb_df.plot(ylim = (0.0, 100.0),
                   ax=ax2, style='--', color=['b', 'c'])
     plt.ylabel('Humedad ambiente [%]', fontsize='x-large')
     ax2.spines['right'].set_color('b')
@@ -135,7 +136,7 @@ def plot_fermenter_average(fermenter, global_df, resample):
     # Plot Fermenters
     plot_df.plot(grid=True,
                 xlim = (plot_df.index.min(), plot_df.index.max()),
-                        ax=ax1, style='o-', yerr=std_df, capsize=4)
+                        ax=ax1, style='o-', yerr=std_df, capsize=4, ylim = (0.0, 60.0))
     plt.xlabel('Fecha-Hora', fontsize='x-large')
     plt.ylabel('Temperatura [$^oC$]', fontsize='x-large')
     plt.title(title_str, fontsize='x-large')
@@ -143,7 +144,7 @@ def plot_fermenter_average(fermenter, global_df, resample):
 
     # Plot humidity data
     ax2 = plt.twinx()
-    h_amb_plot_df.plot(ylim = (10.0, 100.0),
+    h_amb_plot_df.plot(ylim = (0.0, 100.0),
                   ax=ax2, label='H-amb', style='--.b')
     plt.ylabel('Humedad ambiente [%]', fontsize='x-large')
     ax2.spines['right'].set_color('b')
@@ -213,6 +214,7 @@ def plot_fermenter_violin(fermenter, global_df):
     plt.plot(np.arange(len(labels)), th_amb_df['t_amb'], 'o--k', markersize=3, label = 'T ambiente', alpha=0.7)
     # Format figure
     plt.xlim([-1, len(labels)])
+    plt.ylim([0.0, 60.0])
     plt.grid()
     plt.xlabel('Día', fontsize='x-large')
     plt.ylabel('Temperatura [$^oC$]', fontsize='x-large')
@@ -226,6 +228,7 @@ def plot_fermenter_violin(fermenter, global_df):
     ax2 = plt.twinx()
     plt.plot(np.arange(len(labels)), th_amb_df['h_amb'], 'o--b', markersize=3, label = 'H ambiente', alpha=0.7)
     plt.ylabel('Humedad ambiente [%]', fontsize='x-large')
+    plt.ylim([0.0, 100.0])
     ax2.spines['right'].set_color('b')
     ax2.tick_params(axis='y', colors='b')
     ax2.yaxis.label.set_color('b')
@@ -285,7 +288,6 @@ def plot_fermenter_complete(fermenter, global_df, freq, resample):
     # Save fermenter plot
     plt.savefig(os.path.join('data','ferm_current_state', f'f{fermenter}.png'), dpi=300)
     plt.close()
-
 
 
 def plot_3d_profile(fermenter, global_df):

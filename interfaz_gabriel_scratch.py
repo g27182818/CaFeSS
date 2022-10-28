@@ -165,14 +165,19 @@ def lecturadatos(global_df, line):
 #     time.sleep(1)
 
 
-test_df = generate_realistic_test_df(fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2)
+test_df = generate_realistic_test_df(fermenters = 1, sensors = 12, general_noise = 2, start_noise = 2)
 
 # plot_fermenter_sensors(2, test_df, '10min')
 # plot_fermenter_average(6, test_df, '1D')
 # plot_fermenter_violin(6, test_df, day_night=True)
 # plot_fermenter_complete(6, test_df, freq='30min', resample= '1D')
+# start = time.time()
 # plot_3d_profile(8, test_df)
-make_report(test_df, freq = '30min', resample='1D')
+# end = time.time()
+# print(f'It takes {round(end-start, 2)}s to save a heatmap from one fermenter')
+# make_report(test_df, freq = '30min', resample='1D')
+# save_all_3d_plots(test_df)
+make_gif(fermenter=1)
 
 ##############################################################################
 ####################### End of Test code #####################################

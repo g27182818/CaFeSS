@@ -1,14 +1,19 @@
+from fileinput import filename
 from turtle import color
 import matplotlib.pyplot as plt
 import seaborn as sn
 import numpy as np
 import pandas as pd
 import os
+import time
 import datetime
+import glob
+import imageio
 from matplotlib import cm
 import scipy.interpolate as interp
 import matplotlib
 import matplotlib.patches as mpatches
+from tqdm import trange
 pd.options.mode.chained_assignment = None
 
 
@@ -35,7 +40,6 @@ def shade_day_night(global_df):
     for i in range(len(shadow_edges)-2):
         if i%2==0:
             ax.axvspan(shadow_edges[i], shadow_edges[i+1], facecolor='gray', edgecolor='none', alpha=.3)
-
 
 def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
     """
@@ -96,7 +100,6 @@ def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
 
     # Format figure
     plt.tight_layout()
-
 
 def plot_fermenter_average(fermenter, global_df, resample):
     """
@@ -168,7 +171,6 @@ def plot_fermenter_average(fermenter, global_df, resample):
 
     # Format figure
     plt.tight_layout()
-
 
 def plot_fermenter_violin(fermenter, global_df):
     """
@@ -249,7 +251,6 @@ def plot_fermenter_violin(fermenter, global_df):
 
     plt.tight_layout()
 
-
 def plot_fermenter_complete(fermenter, global_df, freq, resample):
     """
     This function draws a figure with 3 plots:
@@ -289,7 +290,6 @@ def plot_fermenter_complete(fermenter, global_df, freq, resample):
     plt.savefig(os.path.join('data','ferm_current_state', f'f{fermenter}.png'), dpi=300)
     plt.close()
 
-
 def plot_3d_profile(fermenter, global_df):
     """
     This function plots a 3D interpolated profile of one fermenter in the last moment in global_df
@@ -299,6 +299,8 @@ def plot_3d_profile(fermenter, global_df):
         global_df (pandas.DataFrame): Global dataframe with all necesary information to plot
     """
     input_temps = global_df[f'f{fermenter}'].iloc[-1, :].values
+    time_string = global_df.index[-1].strftime("%Y-%m-%d %H:%M:%S")
+    time_string_save = time_string.replace(':', '-')
 
     # TODO: Handle correctly the dimensions of the fermenter
     # Define spacing in system
@@ -353,19 +355,15 @@ def plot_3d_profile(fermenter, global_df):
 
     # Set random temperature for test
     #obs_temps = 10 + np.random.rand(obs_coor_flat.shape[0], 1)*50
-
+    
     # Obtain interpolator function
     interp_funct = interp.RBFInterpolator(obs_coor_flat, obs_temp_flat, kernel='linear')
 
     # Define 1D vectors of interpolated coordinates
-    num_points = 20
+    num_points = 15
     x_interp = np.linspace(coor_0[0] - min_padding[0], 3*w + max_padding[0], num_points)
     y_interp = np.linspace(coor_0[1] - min_padding[1], 3*w + max_padding[0], num_points)
     z_interp = np.linspace(coor_0[2] - min_padding[2], 2*h + max_padding[0], num_points)
-
-    x_interp_c = np.linspace(coor_0[0] - min_padding[0], 3*w + max_padding[0], num_points+1)
-    y_interp_c = np.linspace(coor_0[1] - min_padding[1], 3*w + max_padding[0], num_points+1)
-    z_interp_c = np.linspace(coor_0[2] - min_padding[2], 2*h + max_padding[0], num_points+1)
 
     # Create flat coordinate vector of interpolated points
     mesh_interp_coor =  np.meshgrid(x_interp, y_interp, z_interp)
@@ -389,7 +387,8 @@ def plot_3d_profile(fermenter, global_df):
     colors = colors[:-1, :-1, :-1]
 
     # Plot just shell
-    cube[1:-1,1:-1,1:-1] = False 
+    # ube[1:-1,1:-1,1:-1] = False # This plots all the outer shell
+    cube[1:,:-1,:-1] = False # This plots just the outer shell visible to the user
 
     mesh_xy_interp =  np.meshgrid(x_interp, y_interp)
     interp_xy = [c.reshape(-1,1) for c in mesh_xy_interp]
@@ -414,10 +413,7 @@ def plot_3d_profile(fermenter, global_df):
     def add_sampled_points(m_pad, x, y, ax):
         for i in range(2):
             for j in range(2):
-                circle = plt.Circle((x[i]+m_pad[0]+0.5, y[j]+m_pad[1]+0.5), 
-                                    0.7, 
-                                    color='k', 
-                                    fill = False)
+                circle = plt.Circle((x[i]+m_pad[0]+0.5, y[j]+m_pad[1]+0.5), 0.7, color='k', fill = False)
                 ax.add_patch(circle)
 
     extend_var = [np.min(x_interp)+min_padding[0], np.max(x_interp)+max_padding[0],
@@ -441,7 +437,7 @@ def plot_3d_profile(fermenter, global_df):
             facecolors = colors,
             edgecolor= (0, 0, 0, 0.2))
 
-    plt.title("3D Profile", fontsize=30, fontdict= font)
+    plt.title(f"3D Profile of fermenter {fermenter} at time:\n{time_string}", fontsize=22, fontdict= font)
     axisEqual3D(ax)
     plt.axis('off')
 
@@ -484,4 +480,35 @@ def plot_3d_profile(fermenter, global_df):
     font = matplotlib.font_manager.FontProperties(family='serif', size=20)
     text.set_font_properties(font)
 
-    plt.show()
+    os.makedirs(os.path.join('data', 'heat_map_plots', f'f{fermenter}'), exist_ok=True)
+    plt.savefig(os.path.join('data', 'heat_map_plots', f'f{fermenter}', f'{time_string_save}.png'), dpi=300)
+    plt.close()
+
+def save_all_3d_plots(global_df):
+    """
+    This function recieves a global information dataframe and uses plot_3d_profile() to save all images of a all the fermenters in all the datetimes
+
+    Args:
+        global_df (pandas.DataFrame): Multiindex dataframe with a cacao fermentation experiment data.
+    """
+    # Get the number of fermenters
+    level_0 = global_df.columns.get_level_values(level=0).unique()
+    n = len([x for x in level_0 if x[0]=='f'])
+    
+    # Cycle over dates
+    for i in trange(global_df.shape[0]):
+        line = global_df.iloc[[i], :]
+        # Cycle over fermenters
+        for j in range(n):
+            plot_3d_profile(j+1, line)
+
+
+def make_gif(fermenter):
+    # Get image paths
+    images_paths = sorted(glob.glob(os.path.join('data', 'heat_map_plots', f'f{fermenter}', '*.png')))
+    # Create GIF
+    with imageio.get_writer(os.path.join('data', 'heat_map_plots', f'f{fermenter}', f'f{fermenter}_video.gif'), mode='I', duration=0.2) as writer:
+        for i in trange(len(images_paths)):
+            filename = images_paths[i]
+            image = imageio.imread(filename)
+            writer.append_data(image)

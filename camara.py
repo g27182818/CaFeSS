@@ -11,7 +11,7 @@ mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_2_HZ # set refresh rate
 
 
 
-def TakePicture(ruta,nombre):
+def TakePicture(ruta, nombre):
     frame = np.zeros((24*32,)) # Inicialización del tamaño de la imagen, en total 768 pts en un vector de 1xn
     mlx.getFrame(frame) # Se actualiza el vector frame con los datos de la camara
 

@@ -502,10 +502,22 @@ def save_all_3d_plots(global_df):
         for j in range(n):
             plot_3d_profile(j+1, line)
 
-
 def make_gif(fermenter):
+    """
+   This function recieves a fermenter, loads all the heatmap images for that fermeneter from data/heat_map_plots and saves a GIF
+    of the time course of the fermenter.
+
+    Args:
+        fermenter (int): Number of the fermenter to make GIF.
+
+    Raises:
+        ValueError: If no images are stored already for the given fermenter.
+    """
     # Get image paths
     images_paths = sorted(glob.glob(os.path.join('data', 'heat_map_plots', f'f{fermenter}', '*.png')))
+    # Raise error
+    if len(images_paths) == 0:
+        raise ValueError(f'No images are already stored for fermenter {fermenter}')
     # Create GIF
     with imageio.get_writer(os.path.join('data', 'heat_map_plots', f'f{fermenter}', f'f{fermenter}_video.gif'), mode='I', duration=0.2) as writer:
         for i in trange(len(images_paths)):

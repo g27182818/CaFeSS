@@ -25,6 +25,17 @@ height_percent = (fixed_height / float(image.size[1]))
 width_size = int((float(image.size[0]) * float(height_percent)))
 image = image.resize((width_size, fixed_height))
 image.save('resources/Logos_documentación1.png')
+
+
+fixed_height1 = 450
+image1 = Image.open(os.path.abspath(
+    os.path.join('resources', 'probe.png')))
+height_percent1 = (fixed_height1 / float(image1.size[1]))
+width_size1 = int((float(image1.size[0]) * float(height_percent1)))
+image1 = image1.resize((width_size1, fixed_height1))
+image1.save('resources/probe1.png')
+
+
 sg.theme('LightBrown11')
 e = datetime.datetime.now()
 
@@ -85,7 +96,7 @@ col3 = [[sg.Text('Registro de eventos', font=(hv, 15)), sg.Text('', font=(hv, 11
         [sg.Multiline(default_text='Escribir apuntes del proceso',
                       key='multiline', size=(80, 4), font=("Helvetica", 11))],
         [sg.Button('Registrar Volteo',
-                   key='volteo', size=(70, 1), font=(hv, 13))],
+                   key='volteo', size=(63, 1), font=(hv, 13))],
         [sg.Text('Ubicación de datos', font=(hv, 15))],
         [sg.Input(default_text='rutaglobal', key='fileinput', size=(60, 1), font=(
             hv, 11)), sg.Text('', size=(2, 1)), sg.Button('Cambiar Ubicación', key='buttonfile', size=(15, 1), font=(hv, 11))],
@@ -121,10 +132,12 @@ colprin = [
     [sg.Text('═' * 173, font=(hv, 8))],
     [sg.Column(col2), sg.Column(col3)],
 
-    [sg.Image(os.path.abspath(os.path.join('resources', 'Logos_documentación1.png')), size=(
-        width_size*4, fixed_height*4))]
+    [sg.Image(os.path.abspath(os.path.join('resources', 'probe1.png')), size=(
+        width_size1, fixed_height1))]
 
 ]
+
+
 layout = [[sg.Column(colprin, scrollable=True,
                      vertical_scroll_only=True, size_subsample_height=1)]]
 

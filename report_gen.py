@@ -34,7 +34,7 @@ class PDF(FPDF):
             plot_fermenter_complete(i+1, global_df, freq, resample)
         
         # Get list of images paths
-        img_paths = glob.glob(os.path.join('data', 'ferm_current_state','*'))
+        img_paths = sorted(glob.glob(os.path.join('data', 'ferm_current_state','*')))
         img_paths = [img_paths[i:i + 2] for i in range(0, len(img_paths), 2)]
         return img_paths
 

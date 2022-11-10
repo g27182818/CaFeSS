@@ -283,14 +283,13 @@ def plot_fermenter_complete(fermenter, global_df, freq, resample):
     fig.tight_layout()
 
     # Creates dir to fermenter images if they do now exist
-    if not os.path.exists(os.path.join('data','ferm_current_state')):
-        os.makedirs(os.path.join('data','ferm_current_state'))
+    os.makedirs(os.path.join('data','current_ferm_state'), exist_ok=True)
 
     # Save fermenter plot
-    plt.savefig(os.path.join('data','ferm_current_state', f'f{fermenter}.jpeg'), dpi=500)
+    plt.savefig(os.path.join('data','current_ferm_state', f'f{fermenter}.jpeg'), dpi=500)
     plt.close()
 
-def plot_3d_profile(fermenter, global_df):
+def plot_3d_profile(fermenter, global_df, spanish=True):
     """
     This function plots a 3D interpolated profile of one fermenter in the last moment in global_df
 
@@ -300,7 +299,6 @@ def plot_3d_profile(fermenter, global_df):
     """
     input_temps = global_df[f'f{fermenter}'].iloc[-1, :].values
     time_string = global_df.index[-1].strftime("%Y-%m-%d %H:%M:%S")
-    time_string_save = time_string.replace(':', '-')
 
     # TODO: Handle correctly the dimensions of the fermenter
     # Define spacing in system
@@ -422,12 +420,17 @@ def plot_3d_profile(fermenter, global_df):
     # Fontdict definicion
     font = {'family': 'serif',
             'weight': 'normal',
-            'size': 16,
-            }
+            'size': 16}
+    
+    plot_str_dict = {   'title': f"Perfil 3D fermentador {fermenter} en tiempo:\n{time_string}" if spanish else f"3D Profile of fermenter {fermenter} at time:\n{time_string}",
+                        'top': f'Superior $z = {min_padding[2]+z[0]}$ cm' if spanish else f'Top $z ={min_padding[2]+z[0]}$ cm',
+                        'middle': f'Medio $z = {min_padding[2]+z[1]}$ cm' if spanish else f'Middle $z ={min_padding[2]+z[1]}$ cm',
+                        'bottom': f'Inferior $z = {min_padding[2]+z[2]}$ cm' if spanish else f'Bottom $z = {min_padding[2]+z[2]}$ cm',
+                        'temperature': 'Temperatura($^o$C)' if spanish else 'Temperature($^o$C)'}
 
 
     # Plot
-    fig = plt.figure(constrained_layout=True, figsize=(10,8))
+    fig = plt.figure(constrained_layout=True, figsize=(11,8))
     gs = fig.add_gridspec(3, 3)
     ax = fig.add_subplot(gs[:,0:2], projection='3d')
     ax.voxels(mesh_interp_coor[0],
@@ -437,7 +440,7 @@ def plot_3d_profile(fermenter, global_df):
             facecolors = colors,
             edgecolor= (0, 0, 0, 0.2))
 
-    plt.title(f"3D Profile of fermenter {fermenter} at time:\n{time_string}", fontsize=22, fontdict= font)
+    plt.title(plot_str_dict['title'], fontsize=22, fontdict= font)
     axisEqual3D(ax)
     plt.axis('off')
 
@@ -446,7 +449,7 @@ def plot_3d_profile(fermenter, global_df):
     plt.imshow(colors_floors[2], origin='lower',
             extent = extend_var)
     add_sampled_points(min_padding, x, y, ax1)
-    plt.title(r'Top $z ='+str(min_padding[2]+z[0])+'$ cm', fontdict= font)
+    plt.title(plot_str_dict['top'], fontdict= font)
     plt.xlabel("$x~(cm)$", fontsize = 10, fontdict=font)
     plt.ylabel("$y~(cm)$", fontsize = 10, fontdict=font)
 
@@ -454,7 +457,7 @@ def plot_3d_profile(fermenter, global_df):
     plt.imshow(colors_floors[1], origin='lower',
             extent = extend_var)
     add_sampled_points(min_padding, x, y, ax2)
-    plt.title(r'Middle $z ='+str(min_padding[2]+z[1])+'$ cm', fontdict= font)
+    plt.title(plot_str_dict['middle'], fontdict= font)
     plt.xlabel("$x~(cm)$", fontsize = 10, fontdict=font)
     plt.ylabel("$y~(cm)$", fontsize = 10, fontdict=font)
 
@@ -462,7 +465,7 @@ def plot_3d_profile(fermenter, global_df):
     plt.imshow(colors_floors[0], origin='lower',
             extent = extend_var)
     add_sampled_points(min_padding, x, y,ax3)
-    plt.title(r'Bottom $z ='+str(min_padding[2]+z[2])+'$ cm', fontdict= font)
+    plt.title(plot_str_dict['bottom'], fontdict= font)
     plt.xlabel("$x~(cm)$", fontsize = 10, fontdict=font)
     plt.ylabel("$y~(cm)$", fontsize = 10, fontdict=font)
 
@@ -472,7 +475,7 @@ def plot_3d_profile(fermenter, global_df):
     m.set_array([])
     cbar = plt.colorbar(m, ax=[ax1, ax2, ax3], 
                         shrink=1, 
-                        label=r'Temperature($^o$C)',
+                        label=plot_str_dict['temperature'],
                         aspect= 35)
     cbar.ax.tick_params(labelsize=15)
     ax = cbar.ax
@@ -480,8 +483,10 @@ def plot_3d_profile(fermenter, global_df):
     font = matplotlib.font_manager.FontProperties(family='serif', size=20)
     text.set_font_properties(font)
 
-    os.makedirs(os.path.join('data', 'heat_map_plots', f'f{fermenter}'), exist_ok=True)
-    plt.savefig(os.path.join('data', 'heat_map_plots', f'f{fermenter}', f'{time_string_save}.png'), dpi=300)
+    os.makedirs(os.path.join('data', 'current_3d_profiles'), exist_ok=True)
+    plt.savefig(os.path.join('data', 'current_3d_profiles', f'f{fermenter}.jpeg'), dpi=300)
+
+    # TODO: Add current snapshot to giff folder
     plt.close()
 
 def save_all_3d_plots(global_df):

@@ -2,10 +2,14 @@ import pandas as pd
 import datetime
 import numpy as np
 import os
+import shutil
 from scipy import interpolate
 import matplotlib.pyplot as plt
+from report_gen import make_report
+from utils import update_global_df
+from tqdm import trange
 
-# Code to generate a test line
+
 def generate_test_line(num_fer):
     test_str = ''
     # Simulate test ambient temperature and humidity
@@ -19,7 +23,6 @@ def generate_test_line(num_fer):
         for i in range(len(temp_list)):
             test_str = test_str + ',' + str(temp_list[i])   
     return test_str
-
 
 def generate_test_df(fermenters = 8, sensors = 12, days = 14, freq = '30min', general_noise = 2, start_noise = 2):
     """
@@ -76,7 +79,6 @@ def generate_test_df(fermenters = 8, sensors = 12, days = 14, freq = '30min', ge
 
     return test_df
 
-
 def get_interpolated_real_data(resample_min=30):
     """
     This funtion reads the resources/real_data.csv file, interpolates it and returns a pandas dataframe with all the data
@@ -126,7 +128,6 @@ def get_interpolated_real_data(resample_min=30):
 
     return interpolated_df
 
-
 def generate_realistic_test_df(fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2):
     """
     This function generates a global test dataframe with simulated noisy data for a cacao fermentation experiment. The base to simulate
@@ -134,7 +135,7 @@ def generate_realistic_test_df(fermenters = 8, sensors = 12, general_noise = 2, 
     However this function will only produce dataframes from 8 days.
 
     Args:
-        fermenters (int, optional): Numeber of fermenters in the dataframe. Defaults to 8.
+        fermenters (int, optional): Number of fermenters in the dataframe. Defaults to 8.
         sensors (int, optional): Number of sensors in each fermenter. Defaults to 12.
         general_noise (int, optional): Variance of the gaussian distribution to be added as a noise to all data. Defaults to 2.
         start_noise (int, optional): Variance of the gaussian distribution added as an offset for all data. Defaults to 2.
@@ -175,3 +176,70 @@ def generate_realistic_test_df(fermenters = 8, sensors = 12, general_noise = 2, 
     
     return test_df
 
+def generate_realistic_test_line_list(fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2):
+    """
+    This function generates a realistic dataframe using generate_realistic_test_df and splits it into individual lines with the format that should be
+    used by the arduino to send the data. It returns a list of string lines in arduino format and a list of realistic time stamps. The idea is to use
+    both lists to make simulations of real world meassures to asses algorithm performance.
+
+    Args:
+        fermenters (int, optional): Number of simulated fermenters. Defaults to 8.
+        sensors (int, optional): Number of sensors in each fermenter. Defaults to 12.
+        general_noise (int, optional): Variance of the gaussian distribution to be added as a noise to all data. Defaults to 2.
+        start_noise (int, optional): Variance of the gaussian distribution added as an offset for all data. Defaults to 2.
+
+    Returns:
+        line_list (list): List of strings where each element emulates a line sent by the arduino.
+        time_list (list): List of realistic time stamps asociated with the lines. In real application lines are recieved at the times
+                            specified by this list.
+    """
+    # Generate realistic dataframe
+    realistic_df = generate_realistic_test_df(fermenters = fermenters, sensors = sensors, general_noise = general_noise, start_noise = start_noise)
+    # Get meassure names to put in lines
+    level_0_index = realistic_df.columns.get_level_values(0).unique().tolist()
+
+    # Declare empty lists
+    line_list = []
+    time_list = []
+
+    # Cycle over dataframe lines
+    for i in range(len(realistic_df)):
+        # Round messures to 2 decimals
+        df_row = round(realistic_df.iloc[i,:], 2)
+        # Get time stamps
+        time_list.append(realistic_df.index[i])
+        # Start current string line
+        curr_line = ''
+        # Cycle over important names e.g. t-amb, h-amb, f-1, ...
+        for index in level_0_index:
+            curr_line = curr_line + ',' +index
+            values = df_row[index].values
+            # Cycle over name value
+            for val in values:
+                curr_line = curr_line+','+str(val)
+        # Clean resulting line and append it to list 
+        curr_line = curr_line[1:]
+        line_list.append(curr_line)
+    
+    return line_list, time_list
+
+def test_system(iterations=100, fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2):
+
+    # Delete contents of the data folder
+    shutil.rmtree(os.path.join('data'))
+
+    line_list, time_list = generate_realistic_test_line_list(fermenters = fermenters, sensors = sensors,
+                                                             general_noise = general_noise, start_noise = start_noise)
+    
+    global_df = None
+    
+    for i in trange(iterations):
+        global_df = update_global_df(line = line_list[i], global_df=global_df, time_stamp = time_list[i])
+        make_report(global_df=global_df, resample='1D')
+    
+
+test_system(iterations = 8, fermenters=1)
+
+# line_list, time_list = generate_realistic_test_line_list(fermenters=1)
+# print(line_list)
+# breakpoint()

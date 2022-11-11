@@ -1,7 +1,7 @@
 from fpdf import FPDF
 import os
 import glob
-from plotting_functions import plot_fermenter_complete, plot_3d_profile
+from plotting_functions import plot_fermenter_complete, plot_3d_profile, update_gif
 import datetime
 
 class PDF(FPDF):
@@ -27,13 +27,14 @@ class PDF(FPDF):
         self.set_text_color(128)
         self.cell(0, 10, 'Pagina ' + str(self.page_no()), 0, 0, 'C')
 
-    def save_plots(self, global_df, freq, resample):
+    def save_plots(self, global_df, resample):
         # Make and save plots for every fermenter in global_df
         f_number = global_df.columns.get_level_values(0).unique().str.contains('f').sum()
         for i in range(f_number):
-            print(f'Saving figures of fermenter {i+1}')
-            plot_fermenter_complete(i+1, global_df, freq, resample)
+            # print(f'Saving figures of fermenter {i+1}')
+            plot_fermenter_complete(i+1, global_df, resample)
             plot_3d_profile(i+1, global_df)
+            update_gif(i+1)
         
         # Get list of images paths
         paths_plots = sorted(glob.glob(os.path.join('data', 'current_ferm_state','*')))
@@ -59,9 +60,9 @@ class PDF(FPDF):
         self.add_page()
         self.page_body(images)
 
-def make_report(global_df, freq, resample):
+def make_report(global_df, resample):
     pdf_doc = PDF() # Create pdf class
-    img_paths = pdf_doc.save_plots(global_df, freq, resample) # Make and save plots for each fermenter
+    img_paths = pdf_doc.save_plots(global_df, resample) # Make and save plots for each fermenter
     # Iterate to print pages
     for elem in img_paths:
         pdf_doc.print_page(elem)

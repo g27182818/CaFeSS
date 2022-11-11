@@ -1,27 +1,42 @@
-from cProfile import label
-from turtle import title
-import PySimpleGUI as sg
 import datetime
-import random
-import matplotlib.pyplot as plt
-import seaborn as sn
-from matplotlib import style
-import serial, time, numpy as np
 import pandas as pd
 import os
 from plotting_functions import *
-from test_functions import *
-from report_gen import make_report
 import datetime
+import serial
+# import board,busio
+# import adafruit_mlx90640
 
+def initialize_arduino(serial_path = '/dev/ttyUSB0', serial_speed = 9600):
+    # Test code. uncomment the next line to get real function
+    arduino = serial.Serial()
+    # arduino = serial.Serial(serial_path, serial_speed)
+    return arduino
 
-# This function recieves an arduino line and retuns a pandas dataframe 
-def get_pd_from_line(line):
-    
+# This function gets string lines from the arduino
+def read_arduino_line(arduino):
+    # Read and decode lines from arduino
+    arduino_line = arduino.readline()
+    decoded_arduino_line = arduino_line.decode(encoding = 'utf-8')
+    return decoded_arduino_line
+
+# This function receives an arduino line and returns a pandas dataframe 
+def get_pd_from_line(line, time_stamp=None):
+    """
+    This function receives a string line in arduino format and converts it into a one row multi-index dataframe to concat with global_df.
+    It optionally receives a time_stamp that is used in testing the system to specify the time index in the resulting dataframe.
+
+    Args:
+        line (str): String line in arduino format.
+        time_stamp (pandas._libs.tslibs.timestamps.Timestamp, optional): Optional time stamp to set the time index of the one row output dataframe. Defaults to None.
+
+    Returns:
+        pandas.DataFrame: One row pandas dataframe representing the data from the arduino line and with the global_df format.
+    """
     # Split line by fermenter
-    splited_line = line.split('f')[1:] # splited line for fermenter
+    splitted_line = line.split('f')[1:] # splitted line for fermenter
     # Number of fermenters
-    num_fer = len(splited_line)
+    num_fer = len(splitted_line)
 
     # List of ambient temperature and humidity
     amb_list = line.split('f')[0].split(',')[:-1]
@@ -34,8 +49,8 @@ def get_pd_from_line(line):
 
     # Cycle in each fermenter to compute important things
     for i in range(num_fer):
-        # Split each fermenter by comas and dont use the initial number. The if is to handle the last comma
-        fermenter_list = splited_line[i].split(',')[1:-1] if i != num_fer-1 else splited_line[i].split(',')[1:]
+        # Split each fermenter by comas and don't use the initial number. The if is to handle the last comma
+        fermenter_list = splitted_line[i].split(',')[1:-1] if i != num_fer-1 else splitted_line[i].split(',')[1:]
         fermenter_list = [float(temp) for temp in fermenter_list]
         # Restart fermenter dict just in case
         fermenter_dict = {}
@@ -46,11 +61,17 @@ def get_pd_from_line(line):
 
     # Get pandas dataframe for current measurement
     output_df = pd.DataFrame.from_dict(global_dict)
-    # Put date and time as index
-    output_df.index = [datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
-    output_df.index = pd.to_datetime(output_df.index)
+    
+    # Put date and time as index of current time if not specified
+    if time_stamp is None:
+        output_df.index = [datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+        output_df.index = pd.to_datetime(output_df.index)
+    
+    # Or put date-time index specified by parameter
+    else:
+        output_df.index = pd.to_datetime([time_stamp])
 
-    # Put multiindex in data
+    # Put multi-index in data
     output_df.columns = pd.MultiIndex.from_tuples([(c.split('-')[0], c.split('-')[1]) for c in output_df.columns])
     
     # Set names 
@@ -59,18 +80,29 @@ def get_pd_from_line(line):
     # Return output dataframe
     return output_df
 
-# This function reads arduino lines and updates the global dataframe of variables, saves updated files, and computes important statistics
-def lecturadatos(global_df, line, global_route, datei):
-    # Uncoment when using arduino
-    # arduino_line = arduino1.readline()
-    # decoded_arduino_line = arduino_line.decode(encoding = 'utf-8')
-    # current_df = get_pd_from_line(decoded_arduino_line)
+# This function receives arduino lines and updates the global dataframe of variables, saves updated files, and computes important statistics
+def update_global_df(line, global_df = None, time_stamp=None):
+    """
+    This function receives the global dataframe, arduino lines and an optional time stamp for system test purposes.
+    With that information the function updates the global dataframe of variables, saves updated files, and computes important statistics.
 
+    Args:
+        global_df (pandas.DataFrame): Global dataframe with all the data of the fermentation experiment.
+        line (str): String line in arduino format.
+        time_stamp (pandas._libs.tslibs.timestamps.Timestamp, optional): Optional time stamp to set the time index of the one row current dataframe
+                                                                            that will be concatenated with global_df. Defaults to None.
+
+    Raises:
+        ValueError: If global dataframe has no data.
+
+    Returns:
+        global_df (pandas.DataFrame): An updated dataframe with the new arduino line at the end.
+    """
     # Test code, comment in real application
-    current_df = get_pd_from_line(line)
+    current_df = get_pd_from_line(line, time_stamp=time_stamp)
     
-    # Concat normal dataframe with current meassures. If global_df has nothing declare it as current_df
-    global_df = current_df if global_df.shape[0] == 0 else pd.concat([global_df, current_df])
+    # Concat normal dataframe with current measures. If global_df has nothing declare it as current_df
+    global_df = current_df if global_df is None else pd.concat([global_df, current_df])
 
     # Get per day averages
     per_day_df = global_df.resample('D').mean()
@@ -80,10 +112,7 @@ def lecturadatos(global_df, line, global_route, datei):
     per_fermenter_df.index.name = 'datetime'
 
     # Ruta destino para guardar datos en csv
-    if not os.path.isdir(global_route):
-        os.makedirs(global_route)
-    
-    save_path = os.path.join(global_route, datei.strftime("%Y-%m-%d %H-%M-%S"))    
+    os.makedirs(os.path.join('data'), exist_ok=True) 
 
     # Save both dataframes in excel file. This file is updated with every measurement
     # with pd.ExcelWriter(save_path, engine='xlsxwriter') as writer:
@@ -95,18 +124,17 @@ def lecturadatos(global_df, line, global_route, datei):
 
     # If this is the first datum then save with headers
     if global_df.shape[0] == 1:
-        global_df.to_csv(os.path.join(save_path, 'global_df.csv'))
-        per_fermenter_df.to_csv(os.path.join(save_path, 'per_fermenter_df.csv'))
-        per_day_df.to_csv(os.path.join(save_path, 'per_day_df.csv'))
+        global_df.to_csv(os.path.join('data', 'global_df.csv'))
+        per_fermenter_df.to_csv(os.path.join('data', 'per_fermenter_df.csv'))
+        per_day_df.to_csv(os.path.join('data', 'per_day_df.csv'))
     # For the next data just append to the csvs
-    elif global_df.shape > 1:
-        global_df.iloc[[-1], :].to_csv(os.path.join(save_path, 'global_df.csv'), mode='a', header=None)
-        per_fermenter_df.iloc[[-1], :].to_csv(os.path.join(save_path, 'per_fermenter_df.csv'), mode='a', header=None)
-        per_day_df.iloc[[-1], :].to_csv(os.path.join(save_path, 'per_day_df.csv'), mode='a', header=None)
+    elif global_df.shape[0] > 1:
+        global_df.iloc[[-1], :].to_csv(os.path.join('data', 'global_df.csv'), mode='a', header=None)
+        per_fermenter_df.iloc[[-1], :].to_csv(os.path.join('data', 'per_fermenter_df.csv'), mode='a', header=None)
+        per_day_df.iloc[[-1], :].to_csv(os.path.join('data', 'per_day_df.csv'), mode='a', header=None)
     else:
-        raise ValueError('GLobal data frame has no data.')
+        raise ValueError('Global data frame has no data.')
         
-    # Descomentar porque actualiza la interfaz
     # # Actualizar informacion en la interfaz
     # window.Element('Tamb').Update(tamb)
     # window.Element('Hamb').Update(hamb)
@@ -119,3 +147,10 @@ def filter_global_df(global_df, start_str, end_str):
     start_datetime = datetime.datetime.strptime(start_str, "%Y-%m-%d %H:%M:%S")
     end_datetime = datetime.datetime.strptime(end_str, "%Y-%m-%d %H:%M:%S")
     return global_df[start_datetime:end_datetime]
+
+# # This function initializes the thermal camera and returns a camera object
+# def initialize_camera():
+#     i2c = busio.I2C(board.SCL, board.SDA, frequency=400000) # setup I2C
+#     mlx = adafruit_mlx90640.MLX90640(i2c) # begin MLX90640 with I2C comm
+#     mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_2_HZ # set refresh rate
+#     return mlx

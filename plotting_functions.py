@@ -1,5 +1,3 @@
-from fileinput import filename
-from turtle import color
 import matplotlib.pyplot as plt
 import seaborn as sn
 import numpy as np
@@ -14,6 +12,7 @@ import scipy.interpolate as interp
 import matplotlib
 import matplotlib.patches as mpatches
 from tqdm import trange
+from utils import filter_global_df# , initialize_camera
 pd.options.mode.chained_assignment = None
 
 
@@ -41,7 +40,7 @@ def shade_day_night(global_df):
         if i%2==0:
             ax.axvspan(shadow_edges[i], shadow_edges[i+1], facecolor='gray', edgecolor='none', alpha=.3)
 
-def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
+def plot_fermenter_sensors(fermenter, global_df, resample=None, axis = None):
     """
     This function plots all the sensors of a given fermenter resampled by time. It also plots ambient temperature and humidity.
 
@@ -53,16 +52,26 @@ def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
     """
     # Get specific fermenter data
     # The offset is made to guarantee that the plot units are in seconds which make possible to draw day/night shading
-    fermenter_df = global_df[f'f{fermenter}'].resample(resample, offset='0h0min1s').mean()
+    if resample is not None:
+        fermenter_df = global_df[f'f{fermenter}'].resample(resample, offset='0h0min1s').mean()
+    else:
+        fermenter_df = global_df[f'f{fermenter}']
     fermenter_df = fermenter_df.add_prefix('T Sensor ')
     fermenter_df.index.name, fermenter_df.columns.name = None, None
+
     # Get ambient temperature data
-    t_amb_df = global_df['t_amb'].resample(resample, offset='0h0min1s').mean()
+    if resample is not None:
+        t_amb_df = global_df['t_amb'].resample(resample, offset='0h0min1s').mean()
+    else:
+        t_amb_df = global_df['t_amb']
     t_amb_df = t_amb_df.add_prefix('T-amb ')
     t_amb_df.index.name, t_amb_df.columns.name = None, None
 
     # Get ambient humidity data
-    h_amb_df = global_df['h_amb'].resample(resample, offset='0h0min1s').mean()
+    if resample is not None:
+        h_amb_df = global_df['h_amb'].resample(resample, offset='0h0min1s').mean()
+    else:
+        h_amb_df = global_df['h_amb']
     h_amb_df = h_amb_df.add_prefix('H-amb ')
     h_amb_df.index.name, h_amb_df.columns.name = None, None
 
@@ -101,6 +110,7 @@ def plot_fermenter_sensors(fermenter, global_df, resample, axis = None):
     # Format figure
     plt.tight_layout()
 
+# TODO: Be sure that this function can correctly plot all fermenters
 def plot_fermenter_average(fermenter, global_df, resample):
     """
     This function plots the averages of any fermenter resampled by time. It also plots ambient temperature and humidity.
@@ -137,9 +147,8 @@ def plot_fermenter_average(fermenter, global_df, resample):
     ax1 = t_amb_plot_df.plot(label='T-amb', style='--.k')
 
     # Plot Fermenters
-    plot_df.plot(grid=True,
-                xlim = (plot_df.index.min(), plot_df.index.max()),
-                        ax=ax1, style='o-', yerr=std_df, capsize=4, ylim = (0.0, 60.0))
+    plot_df.plot(grid=True, xlim = (plot_df.index.min(), plot_df.index.max()),
+                 ax=ax1, style='o-', yerr=std_df, capsize=4, ylim = (0.0, 60.0))
     plt.xlabel('Fecha-Hora', fontsize='x-large')
     plt.ylabel('Temperatura [$^oC$]', fontsize='x-large')
     plt.title(title_str, fontsize='x-large')
@@ -154,7 +163,6 @@ def plot_fermenter_average(fermenter, global_df, resample):
     ax2.tick_params(axis='y', colors='b')
     ax2.yaxis.label.set_color('b')
     
-
     # Add legends
     # Get day and night patches handles
     night_patch = mpatches.Patch(facecolor='grey', edgecolor='none', alpha=.3, label='Noche')
@@ -251,7 +259,7 @@ def plot_fermenter_violin(fermenter, global_df):
 
     plt.tight_layout()
 
-def plot_fermenter_complete(fermenter, global_df, freq, resample):
+def plot_fermenter_complete(fermenter, global_df, resample, path=None):
     """
     This function draws a figure with 3 plots:
     1. All the sensors from a fermenter resampled if desired
@@ -261,14 +269,14 @@ def plot_fermenter_complete(fermenter, global_df, freq, resample):
     Args:
         fermenter (int): Fermenter to plot. Positive integer.
         global_df (pandas.DataFrame): Dataframe with all required information
-        freq (str): String specifying the sample frequency of the data
         resample (str): String specifying the frequency to resample data. Cannot be less than the original sampling frequency.
+        path (str): Optional parameter to specify where to store the plot. If none the plot is saved in os.path.join('data','current_ferm_state', f'f{fermenter}.jpeg')
     """
     fig = plt.figure(figsize=(14,10))
 
     # Plot all sensors from a fermenter resampled
     ax1 = plt.subplot(2,2,1)
-    plot_fermenter_sensors(fermenter, global_df, resample = freq, axis=ax1)
+    plot_fermenter_sensors(fermenter, global_df, resample = None, axis=ax1)
 
     # Plot the fermenter average temperature resampled
     plt.subplot(2,2,2)
@@ -286,7 +294,10 @@ def plot_fermenter_complete(fermenter, global_df, freq, resample):
     os.makedirs(os.path.join('data','current_ferm_state'), exist_ok=True)
 
     # Save fermenter plot
-    plt.savefig(os.path.join('data','current_ferm_state', f'f{fermenter}.jpeg'), dpi=500)
+    if path is not None:
+        plt.savefig(path, dpi=500)
+    else:    
+        plt.savefig(os.path.join('data','current_ferm_state', f'f{fermenter}.jpeg'), dpi=500)
     plt.close()
 
 def plot_3d_profile(fermenter, global_df, spanish=True):
@@ -489,6 +500,35 @@ def plot_3d_profile(fermenter, global_df, spanish=True):
     # TODO: Add current snapshot to giff folder
     plt.close()
 
+# # TODO: Make appropiate documentation of this function. Also program it in english
+# # TODO: Be sure that this function works
+# def take_thermal_picture(mlx):
+#     frame = np.zeros((24*32,)) # Inicialización del tamaño de la imagen, en total 768 pts en un vector de 1xn
+#     mlx.getFrame(frame) # Se actualiza el vector frame con los datos de la camara
+
+#     mlx_shape = (24,32) # Tamaño real de la imagen mlx90640 shape en forma de matriz
+#     data_array = np.fliplr(np.reshape(frame,mlx_shape)) # Actualización del frame en data_frame, ahora es una matriz con los datos de la imagen
+
+#     ax=plt.subplot(111) # Se crea un subplot (Necesario para agregar textos, colorbar, ext.)
+#     N = 26
+#     mean = np.mean(frame) # Se obtiene temperatura media
+#     textstr = "Mean temperature: " + str(mean) + "°C" # Se crea el texto que acompañará a la imagen  
+#     props = dict(boxstyle="round", facecolor = "wheat", alpha = 0.5) # estilo de la caja de texto
+#     t1 = ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize = 14, fontstyle =  "italic",verticalalignment = "top", bbox = props) # Se crea una caja de texto
+#     cmap=plt.get_cmap('jet',26) # Estilo de la barra de color
+#     therm1 = ax.imshow(data_array,interpolation='none', cmap=cmap,vmin=10,vmax=60) # Se coloca la imagen del data_array en la figura
+#     cbar = plt.colorbar(therm1, ticks=np.linspace(10, 260, N), label = "Temperature [°C]") # Se establece la barra de color
+#     # Ahora se definen el titulo y los ejes
+#     plt.title(label="Thermal view",
+#           position=(0.5, 0.9),
+#           fontdict={'family': 'Dejavu Serif',
+#                     'color' : 'black',
+#                     'weight': 'bold',
+#                     'size': 16})
+
+#     plt.xlabel("x-coordinate", size = 12)
+#     plt.ylabel("y-coordinate", size = 12)
+
 def save_all_3d_plots(global_df):
     """
     This function recieves a global information dataframe and uses plot_3d_profile() to save all images of a all the fermenters in all the datetimes
@@ -507,7 +547,8 @@ def save_all_3d_plots(global_df):
         for j in range(n):
             plot_3d_profile(j+1, line)
 
-def make_gif(fermenter):
+
+def update_gif(fermenter):
     """
    This function recieves a fermenter, loads all the heatmap images for that fermeneter from data/heat_map_plots and saves a GIF
     of the time course of the fermenter.
@@ -518,14 +559,108 @@ def make_gif(fermenter):
     Raises:
         ValueError: If no images are stored already for the given fermenter.
     """
-    # Get image paths
-    images_paths = sorted(glob.glob(os.path.join('data', 'heat_map_plots', f'f{fermenter}', '*.png')))
-    # Raise error
-    if len(images_paths) == 0:
-        raise ValueError(f'No images are already stored for fermenter {fermenter}')
+    # Get current 3d temp image path and gif path
+    image_path = os.path.join('data', 'current_3d_profiles', f'f{fermenter}.jpeg')
+    gif_path = os.path.join('data', 'current_gifs', f'f{fermenter}.gif')
+    
+    # Make current gifs directory if it does not exists
+    os.makedirs(os.path.join('data', 'current_gifs'), exist_ok=True)
+    
+    # Read current gif if it exists
+    gif = imageio.mimread(gif_path) if os.path.exists(gif_path) else None
+
     # Create GIF
-    with imageio.get_writer(os.path.join('data', 'heat_map_plots', f'f{fermenter}', f'f{fermenter}_video.gif'), mode='I', duration=0.2) as writer:
-        for i in trange(len(images_paths)):
-            filename = images_paths[i]
-            image = imageio.imread(filename)
-            writer.append_data(image)
+    with imageio.get_writer(os.path.join('data', 'current_gifs', f'f{fermenter}.gif'), mode='I', duration=0.2) as writer:
+        image = imageio.imread(image_path)
+        if gif is not None:
+            [writer.append_data(frame) for frame in gif]    
+        writer.append_data(image)
+
+
+# Format definition of requested plots
+requested_plot = {  'start_date': '-1', # '-1' to use the beginning of the global dataframe. String in the format of pysimplegui calendar button output. If 'plot'=='3d_temp_gif' or 'thermal_camera' this argument will not be taken into acount 
+                    'end_date': '-1', # '-1' to use the end of the global dataframe. String in the format of pysimplegui calendar button output. If 'plot'=='3d_temp_giff' this argument will not be taken into acount.
+                    'fermenter': -1, # Int specifying the fermenter to plot. Must be between -1 and the total number of fermenters. argument -1 will only work for 'plot'=='mean_std_fermenter' to show all fermenters. There is no fermenter 0. They start from 1.
+                    'plot': 'complete_fermenter', # String with the plot to do. choices = ['complete_fermenter', 'violin_fermenter', 'all_sensors_fermenter', 'mean_std_fermenter', '3d_temp_gif', 'thermal_camera'].
+                    'resampling': '1D' # String with possible resampling that can be used for 'plot'=='complete_fermenter' or 'all_sensors_fermenter' or 'mean_std_fermenter'. choices = ['1h', '3h', '6h', '12h', '1D'] 
+                    }
+
+def request_plot(request_dict, global_df):
+    """
+    This function recieves a dictionary that specifies a required plot, makes the plot, saves it and returns a path where the plot is stored.
+
+    Args:
+        request_dict (dict):    This dictionary has all the necessary details to make the plot that the user wants. The keys are:
+                                'start_date':   E.g. '-1'. String in the format of pysimplegui calendar button output to define start date of the plot.
+                                                '-1' to use the beginning of the global dataframe. If 'plot'=='3d_temp_gif' or 'thermal_camera' this
+                                                argument will not be taken into acount. Note that if 'start_date'==-1 then also 'end_date'=-1.
+                                'end_date':     E.g. '-1'. String in the format of pysimplegui calendar button output to define end date of the plot.
+                                                '-1' to use the end of the global dataframe. If 'plot'=='3d_temp_gif' or 'thermal_camera' this
+                                                argument will not be taken into acount. Note that if 'end_date'==-1 then also 'start_date'=-1.
+                                'fermenter':    E.g. -1. Int specifying the fermenter to plot. Must be -1 or bellow the total number of fermenters.
+                                                Argument -1 will only work for 'plot'=='mean_std_fermenter' to show all fermenters. There is no fermenter 0.
+                                                They start from 1.
+                                'plot':         E.g.'complete_fermenter'. String specifying the plot to do. choices = ['complete_fermenter', 'violin_fermenter',
+                                                'all_sensors_fermenter', 'mean_std_fermenter', '3d_temp_gif', 'thermal_camera']
+                                'resampling':   E.g. '1D'. String with possible resampling that can be used for 'plot'==['complete_fermenter', 'all_sensors_fermenter',
+                                                'mean_std_fermenter']. choices = ['1h', '2h', '3h', '6h', '12h', '1D'].
+        global_df (Pandas.DataFrame): Dataframe with all the needed data to make each plot.
+
+    Returns:
+        str: A string with the path to the stored plot.
+    """
+
+    # If start and end dates are not specified the don't perform any filtering of global_df
+    if (request_dict['start_date'] == '-1') and (request_dict['end_date'] == '-1'):
+        filtered_df = global_df
+    # Filter global_df with start and end if specified
+    elif (request_dict['start_date'] != '-1') and (request_dict['end_date'] != '-1'):
+        filtered_df = filter_global_df(global_df, request_dict['start_date'], request_dict['start_date'])
+    else:
+        raise ValueError('Invalid date filtering for global dataframe. Start and end date must both be "-1" or neither of them should be "-1".')
+
+    # Create folder of requested plots if it does not exists
+    os.makedirs(os.path.join('data', 'requested_plots'), exist_ok=True)
+    # Get the path from the now string for images that are not already generated
+    path = f'{datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")}_{request_dict["plot"]}.jpeg'
+
+    # Handle all the different kinds of plots
+    if request_dict['plot']=='complete_fermenter':
+        plot_fermenter_complete(request_dict['fermenter'], filtered_df, request_dict['resample'], path=path)
+
+    elif request_dict['plot']== 'violin_fermenter':
+        plt.figure(figsize=(14, 5))
+        plot_fermenter_violin(request_dict['fermenter'], filtered_df)
+        plt.savefig(path, dpi=300)
+        plt.close()
+
+    elif request_dict['plot']== 'all_sensors_fermenter':
+        plt.figure(figsize=(7, 5))
+        plot_fermenter_sensors(request_dict['fermenter'], filtered_df, request_dict['resample'])
+        plt.savefig(path, dpi=300)
+        plt.close()
+
+    elif request_dict['plot']== 'mean_std_fermenter':
+        plt.figure(figsize=(7,5))
+        plot_fermenter_average(request_dict['fermenter'], filtered_df, request_dict['resample'])
+        plt.savefig(path, dpi=300)
+        plt.close()
+
+    # If the user requested the 3D gif then point to the path where the gif is already stored
+    elif request_dict['plot']== '3d_temp_gif':
+        path = os.path.join('data', 'current_gifs', f'f{request_dict["fermenter"]}.gif')
+        if not os.path.exists(path):
+            raise ValueError(f'There is still no gif file in {path}')
+
+    # TODO: Make thermal camara photo work even when camera is disconnected
+    # elif request_dict['plot']== 'thermal_camera':  
+    #     mlx = initialize_camera()
+    #     plt.figure(figsize=(7, 5))
+    #     take_thermal_picture(mlx)
+    #     plt.savefig(path, dpi=300)
+    #     plt.close()
+
+    else:
+        raise ValueError('Invalid type of plot. Must be one of ["complete_fermenter", "violin_fermenter", "all_sensors_fermenter", "mean_std_fermenter", "3d_temp_gif", "thermal_camera"]')
+
+    return path

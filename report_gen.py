@@ -34,7 +34,6 @@ class PDF(FPDF):
             # print(f'Saving figures of fermenter {i+1}')
             plot_fermenter_complete(i+1, global_df, resample)
             plot_3d_profile(i+1, global_df)
-            update_gif(i+1)
         
         # Get list of images paths
         paths_plots = sorted(glob.glob(os.path.join('data', 'current_ferm_state','*')))

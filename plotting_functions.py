@@ -310,6 +310,7 @@ def plot_3d_profile(fermenter, global_df, spanish=True):
     """
     input_temps = global_df[f'f{fermenter}'].iloc[-1, :].values
     time_string = global_df.index[-1].strftime("%Y-%m-%d %H:%M:%S")
+    save_string = global_df.index[-1].strftime("%Y-%m-%d %H-%M-%S")+'.jpeg'
 
     # TODO: Handle correctly the dimensions of the fermenter
     # Define spacing in system
@@ -495,9 +496,10 @@ def plot_3d_profile(fermenter, global_df, spanish=True):
     text.set_font_properties(font)
 
     os.makedirs(os.path.join('data', 'current_3d_profiles'), exist_ok=True)
+    os.makedirs(os.path.join('data', 'previous_3d_profiles', f'f{fermenter}'), exist_ok=True)
     plt.savefig(os.path.join('data', 'current_3d_profiles', f'f{fermenter}.jpeg'), dpi=300)
+    plt.savefig(os.path.join('data', 'previous_3d_profiles', f'f{fermenter}', save_string), dpi=300)
 
-    # TODO: Add current snapshot to giff folder
     plt.close()
 
 # # TODO: Make appropiate documentation of this function. Also program it in english
@@ -547,7 +549,7 @@ def save_all_3d_plots(global_df):
         for j in range(n):
             plot_3d_profile(j+1, line)
 
-
+# FIXME: This is not functional. Delete later
 def update_gif(fermenter):
     """
    This function recieves a fermenter, loads all the heatmap images for that fermeneter from data/heat_map_plots and saves a GIF
@@ -575,6 +577,33 @@ def update_gif(fermenter):
         if gif is not None:
             [writer.append_data(frame) for frame in gif]    
         writer.append_data(image)
+
+def make_gif(fermenter):
+    """
+   This function receives a fermenter, loads all the heatmap images for that fermenter from data/heat_map_plots and saves a GIF
+    of the time course of the fermenter.
+
+    Args:
+        fermenter (int): Number of the fermenter to make GIF.
+
+    Raises:
+        ValueError: If no images are stored already for the given fermenter.
+    """
+    # Get image paths
+    images_paths = sorted(glob.glob(os.path.join('data', 'previous_3d_profiles', f'f{fermenter}', '*.jpeg')))
+    # Create gif directory
+    os.makedirs(os.path.join('data', 'current_gifs'), exist_ok=True)
+    # Raise error
+    if len(images_paths) == 0:
+        raise ValueError(f'No images are already stored for fermenter {fermenter}')
+    # Create GIF
+    with imageio.get_writer(os.path.join('data', 'current_gifs', f'f{fermenter}.gif'), mode='I', duration=0.2) as writer:
+        t = trange(len(images_paths))
+        t.set_description(f'Generating GIF fermenter {fermenter}')
+        for i in t:
+            filename = images_paths[i]
+            image = imageio.imread(filename)
+            writer.append_data(image)
 
 
 # Format definition of requested plots
@@ -648,6 +677,7 @@ def request_plot(request_dict, global_df):
 
     # If the user requested the 3D gif then point to the path where the gif is already stored
     elif request_dict['plot']== '3d_temp_gif':
+        make_gif(request_dict['fermenter'])
         path = os.path.join('data', 'current_gifs', f'f{request_dict["fermenter"]}.gif')
         if not os.path.exists(path):
             raise ValueError(f'There is still no gif file in {path}')

@@ -7,6 +7,7 @@ from scipy import interpolate
 import matplotlib.pyplot as plt
 from report_gen import make_report
 from utils import update_global_df
+from plotting_functions import make_gif
 from tqdm import trange
 
 
@@ -81,7 +82,7 @@ def generate_test_df(fermenters = 8, sensors = 12, days = 14, freq = '30min', ge
 
 def get_interpolated_real_data(resample_min=30):
     """
-    This funtion reads the resources/real_data.csv file, interpolates it and returns a pandas dataframe with all the data
+    This function reads the resources/real_data.csv file, interpolates it and returns a pandas dataframe with all the data
     and a datetime index.
 
     Args:
@@ -230,15 +231,18 @@ def test_system(iterations=100, fermenters = 8, sensors = 12, general_noise = 2,
 
     line_list, time_list = generate_realistic_test_line_list(fermenters = fermenters, sensors = sensors,
                                                              general_noise = general_noise, start_noise = start_noise)
-    
     global_df = None
     
-    for i in trange(iterations):
+    t = trange(iterations)
+    for i in t:
+        t.set_description(f'Iteration {i}')
         global_df = update_global_df(line = line_list[i], global_df=global_df, time_stamp = time_list[i])
         make_report(global_df=global_df, resample='1D')
     
+    for i in range(fermenters):
+        make_gif(i+1)
 
-test_system(iterations = 8, fermenters=1)
+test_system(iterations = 100, fermenters=1)
 
 # line_list, time_list = generate_realistic_test_line_list(fermenters=1)
 # print(line_list)

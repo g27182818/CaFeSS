@@ -226,6 +226,8 @@ def generate_realistic_test_line_list(fermenters = 8, sensors = 12, general_nois
 
 def test_system(iterations=100, fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2):
 
+    # Make data dir if it does not exist for first run
+    os.makedirs(os.path.join('data'), exist_ok=True)
     # Delete contents of the data folder
     shutil.rmtree(os.path.join('data'))
 

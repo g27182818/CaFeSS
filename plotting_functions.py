@@ -75,8 +75,11 @@ def plot_fermenter_sensors(fermenter, global_df, resample=None, axis = None):
     h_amb_df = h_amb_df.add_prefix('H-amb ')
     h_amb_df.index.name, h_amb_df.columns.name = None, None
 
+    # Handle xlim whe we have just some data points
+    xlim_tup = (None, None) if fermenter_df.index.min() == fermenter_df.index.max() else (fermenter_df.index.min(), fermenter_df.index.max())
+
     # Plot Fermenters
-    ax1 = fermenter_df.plot( xlim = (fermenter_df.index.min(), fermenter_df.index.max()), xlabel='Fecha-Hora', ax=axis)
+    ax1 = fermenter_df.plot( xlim = xlim_tup, xlabel='Fecha-Hora', ax=axis)
 
     # Plot ambient temperatures
     t_amb_df.plot(ax=ax1, style='--', color=['k', 'gray'], grid=True, ylim = (0.0, 60.0))
@@ -146,8 +149,10 @@ def plot_fermenter_average(fermenter, global_df, resample):
     # Plot ambient temperatures
     ax1 = t_amb_plot_df.plot(label='T-amb', style='--.k')
 
+    # Handle xlim whe we have just some data points
+    xlim_tup = (None, None) if plot_df.index.min() == plot_df.index.max() else (plot_df.index.min(), plot_df.index.max())
     # Plot Fermenters
-    plot_df.plot(grid=True, xlim = (plot_df.index.min(), plot_df.index.max()),
+    plot_df.plot(grid=True, xlim = xlim_tup,
                  ax=ax1, style='o-', yerr=std_df, capsize=4, ylim = (0.0, 60.0))
     plt.xlabel('Fecha-Hora', fontsize='x-large')
     plt.ylabel('Temperatura [$^oC$]', fontsize='x-large')

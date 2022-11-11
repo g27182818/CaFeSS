@@ -105,22 +105,14 @@ def update_global_df(line, global_df = None, time_stamp=None):
     global_df = current_df if global_df is None else pd.concat([global_df, current_df])
 
     # Get per day averages
-    per_day_df = global_df.resample('D').mean()
+    per_day_df = round(global_df.resample('D').mean(), 2)
     per_day_df.columns.names = [None, 'datetime']
     # Promedio de todos los sensores por fermentador
-    per_fermenter_df = global_df.groupby(level=0, axis=1).mean()
+    per_fermenter_df = round(global_df.groupby(level=0, axis=1).mean(), 2)
     per_fermenter_df.index.name = 'datetime'
 
     # Ruta destino para guardar datos en csv
-    os.makedirs(os.path.join('data'), exist_ok=True) 
-
-    # Save both dataframes in excel file. This file is updated with every measurement
-    # with pd.ExcelWriter(save_path, engine='xlsxwriter') as writer:
-    #     global_df.to_excel(writer, sheet_name='Total_Datos_Fermentacion')
-    #     writer.sheets['Total_Datos_Fermentacion'].set_row(2, None, None, {'hidden': True})
-    #     per_fermenter_df.to_excel(writer, sheet_name='Promedios_Generales')
-    #     per_day_df.to_excel(writer, sheet_name='Promedio_Diario')
-    #     writer.sheets['Promedio_Diario'].set_row(2, None, None, {'hidden': True})
+    os.makedirs(os.path.join('data'), exist_ok=True)
 
     # If this is the first datum then save with headers
     if global_df.shape[0] == 1:

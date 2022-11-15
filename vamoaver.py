@@ -10,7 +10,8 @@ from PIL import Image
 import datetime
 import serial
 import time
-
+import json
+from pathlib import Path
 
 serial_path = '/dev/ttyUSB0'
 serial_speed = 9600
@@ -49,7 +50,11 @@ width_size = int((float(image.size[0]) * float(height_percent)))
 image = image.resize((width_size, fixed_height))
 image.save('resources/Logos_documentación1.png')
 
-
+settings_file = 'settings.json'
+settings = {'-Image-': None}
+if Path(settings_file).is_file():
+    with open(settings_file, 'rt') as f:
+        settings = json.load(f)
 fixed_width1 = w-100
 image1 = Image.open(os.path.abspath(
     os.path.join('resources', 'f1.jpeg')))
@@ -157,8 +162,9 @@ colprin = [
     [sg.Text('═' * 173, font=(hv, 8))],
     [sg.Column(col2), sg.Column(col3)],
 
-    [sg.Image(os.path.abspath(os.path.join('resources', 'probe1.png')), size=(
-        fixed_width1, height_size1))],
+    #  [sg.Image(os.path.abspath(os.path.join('resources', 'probe1.png')),
+    [sg.Image(filename=settings['-Image-'], visible=(settings['-Image-'] is not None),
+              size=(fixed_width1, height_size1), key="ImagePlot")],
     [sg.Text(' ' * 173, font=(hv, 8))],
     [sg.Text('═' * 173, font=(hv, 8))]
 
@@ -262,7 +268,6 @@ while True:
                 arduino1.close()  # Finalizamos la comunicacion
                 break
 
-    #  if event == 'buttongraficar':
     if (values['graphtype'] in ('Perfil 3D', 'Cámara termica')):
         window['checkDate'].update(disabled=True)
        # window.Element('lectura').Update('perfil 3d')
@@ -319,4 +324,11 @@ while True:
         plot = values['graphtype']
     request_dict = {'start_date': start_date, 'end_date': end_date,
                     'fermenter': fermenter, 'plot': plot, 'resampling': resampling}
+    if event == 'buttongraficar':
+        filename = request_plot(request_dict)
+        window['ImagePlot'].update(filename=filename, visible=True)
+        window.refresh()
+        window.move_to_center()
+        settings['ImagePlot'] = filename
+
 window.close()

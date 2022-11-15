@@ -301,6 +301,8 @@ while True:
     if (values['checkresamp'] == True):
         window['hourcombo'].update(visible=True)
     if (values['checkDate'] != True):
+        start_date = -1
+        end_date = -1
         window['-INICIALG-'].update(visible=False)
         window['-FINALG-'].update(visible=False)
         window['InicialButton'].update(visible=False)
@@ -314,6 +316,7 @@ while True:
         window['InicialText'].update(visible=True)
         window['FinalButton'].update(visible=True)
         window['FinalText'].update(visible=True)
+        plot = values['graphtype']
     request_dict = {'start_date': start_date, 'end_date': end_date,
                     'fermenter': fermenter, 'plot': plot, 'resampling': resampling}
 window.close()

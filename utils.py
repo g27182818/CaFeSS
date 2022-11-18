@@ -2,7 +2,6 @@ import datetime
 import pandas as pd
 import os
 from plotting_functions import *
-import datetime
 import serial
 from PIL import Image
 # import board,busio
@@ -70,7 +69,7 @@ def get_pd_from_line(line, time_stamp=None):
     
     # Put date and time as index of current time if not specified
     if time_stamp is None:
-        output_df.index = [datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
+        output_df.index = [datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
         output_df.index = pd.to_datetime(output_df.index)
     
     # Or put date-time index specified by parameter

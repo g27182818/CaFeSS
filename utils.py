@@ -36,6 +36,8 @@ def get_pd_from_line(line, time_stamp=None):
     Returns:
         pandas.DataFrame: One row pandas dataframe representing the data from the arduino line and with the global_df format.
     """
+    # Get line without new lines
+    line = line.split('\r')[0].pop()
     # Split line by fermenter
     splitted_line = line.split('f')[1:] # splitted line for fermenter
     # Number of fermenters

@@ -257,7 +257,6 @@ while True:
             counter = counter+1
         else:
             line = read_arduino_line(arduino)
-            breakpoint()
             global_df = update_global_df(line = line, global_df=global_df)
         
         make_report(global_df=global_df, resample='1D')

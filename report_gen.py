@@ -1,7 +1,7 @@
 from fpdf import FPDF
 import os
 import glob
-from plotting_functions import plot_fermenter_complete, plot_3d_profile, update_gif
+from plotting_functions import plot_fermenter_complete, plot_3d_profile
 import datetime
 
 class PDF(FPDF):

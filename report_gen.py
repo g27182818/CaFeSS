@@ -36,8 +36,8 @@ class PDF(FPDF):
             plot_3d_profile(i+1, global_df)
         
         # Get list of images paths
-        paths_plots = sorted(glob.glob(os.path.join('data', 'current_ferm_state','*')))
-        paths_3d = sorted(glob.glob(os.path.join('data', 'current_3d_profiles','*')))
+        paths_plots = sorted(glob.glob(os.path.join('data', 'current_ferm_state','*.jpeg')))
+        paths_3d = sorted(glob.glob(os.path.join('data', 'current_3d_profiles','*.jpeg')))
         img_paths = [[paths_plots[i], paths_3d[i]] for i in range(len(paths_plots))]
         return img_paths
 

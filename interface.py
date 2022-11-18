@@ -399,8 +399,9 @@ while True:
                         'Sensores por fermentador':         'all_sensors_fermenter',
                         'Promedio y desviación estándar':   'mean_std_fermenter',
                         'Perfil 3D':                        '3d_temp',
-                        'Cámara termica':                   'thermal_camera'}
+                        'Cámara termica':                   'thermal_camera'} # FIXME: Disable thermal camera for initial demo
 
+    # TODO: Make several tests with all the options
     if event == 'buttongraficar':
         plot = values['graphtype']
         resampling = values['hourcombo']

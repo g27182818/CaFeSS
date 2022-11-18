@@ -208,7 +208,7 @@ rutan = os.path.join(rutaglobal, "notas "+datei.strftime("%m-%d-%Y")+".txt")
 outFile = open(rutan, "a")
 counter = 0
 initial_time = time.time()
-sample_freq = 0.5
+sample_freq = 1
 read_wait = 0.116
 cycle = 0
 

@@ -12,34 +12,46 @@ import serial
 import time
 import json
 from pathlib import Path
+from plotting_functions import request_plot
+from utils import initialize_arduino, read_arduino_line, update_global_df, is_it_measure_time, is_it_read_time, modify_image
+from test_functions import generate_realistic_test_line_list
+from report_gen import make_report
+import os
 
-serial_path = '/dev/ttyUSB0'
+# Test code parameter
+test_code = True
+
+serial_path = '/dev/ttyUSB0' # '/dev/ttyUSB1'
 serial_speed = 9600
 
-# Test code uncomment the next line to get real function
-arduino1 = serial.Serial()
+# Define arduino object
+arduino = initialize_arduino(serial_path = serial_path, serial_speed = serial_speed, test=test_code)
+# Define global dataframe of complete data
+global_df = None
+# Generate realistic line list to use if we are in test mode
+line_list, time_list = generate_realistic_test_line_list(fermenters = 1, sensors = 12, general_noise = 2, start_noise = 2)
 
-# arduino1 = serial.Serial(serial_path, serial_speed)
-# arduino2 = serial.Serial('/dev/ttyUSB0', 9600)
-
+# Define global variables
 global rutaglobal, start_date, end_date, fermenter, plot, resampling
 
+# Initialize variables
 start_date = -1
 end_date = -1
 fermenter = -1
 plot = 'complete_fermenter'
 resampling = '12h'
-
-sg.set_options(font=("Helvetica", 5), text_justification='center')
 dias = 0
 contdia = 0
 instanteInicial = time.time()
-print("Starting!")
 contador = 0
 rutaglobal = os.getcwd()  # "/home/pi/Raspduino"
 # Set short name for Helvetica
 hv = 'Helvetica'
 os.getcwd()
+
+print("Starting!")
+
+sg.set_options(font=("Helvetica", 5), text_justification='center')
 w, h = sg.Window.get_screen_size()
 
 fixed_height = 200
@@ -51,10 +63,12 @@ image = image.resize((width_size, fixed_height))
 image.save('resources/Logos_documentación1.png')
 
 settings_file = 'settings.json'
-settings = {'-Image-': None}
+settings = {'-Image-': os.path.join('resources', 'probe1.png')}
 if Path(settings_file).is_file():
     with open(settings_file, 'rt') as f:
         settings = json.load(f)
+
+
 fixed_width1 = w-100
 image1 = Image.open(os.path.abspath(
     os.path.join('resources', 'f1.jpeg')))
@@ -63,6 +77,8 @@ height_size1 = int((float(image1.size[1]) * float(width_percent1)))
 image1 = image1.resize((fixed_width1, height_size1))
 image1.save('resources/probe1.png')
 
+# TODO: set this depending in the number of detected fermenters
+ferlist = ['Fermentador 1', 'Fermentador 2', 'Fermentador 3', 'Fermentador 4']
 
 sg.theme('LightBrown11')
 e = datetime.datetime.now()
@@ -98,31 +114,36 @@ col1 = [[sg.Text(' ' * 25,  size=(
 col2 = [[sg.Text('Panel de opciones gráficas', font=(hv, 15))],
         [sg.Text('Tipo de Gráfica:', font=(hv, 12))],
         [sg.InputCombo(('Gráficas completas', 'Violin plot', 'Sensores por fermentador',
-                        'Promedio y desviación estándar', 'Perfil 3D', 'Cámara termica'), size=(40, 10), font=(hv, 13), key='graphtype', default_value='Gráficas completas')],
+                        'Promedio y desviación estándar', 'Perfil 3D', 'Cámara termica'),
+                       size=(40, 10), font=(hv, 13), key='graphtype', default_value='Gráficas completas')],
         [sg.Text('Fermentador a graficar:', font=(hv, 12))],
-        [sg.InputCombo(('Fermentador 1', 'Fermentador 2', 'Fermentador 3', 'Fermentador 4'), size=(40, 10), font=(hv, 13), key='combofer', default_value='Fermentador 1'),
+        [sg.InputCombo(ferlist,
+                       size=(40, 10), font=(hv, 13), key='combofer', default_value='Fermentador 1'),
 
          sg.Button('Graficar', key='buttongraficar',
                    size=(13, 1), font=(hv, 13))],
         [sg.Checkbox('Resampling', key='checkresamp',
                      size=(50, 1), default=False, font=(hv, 11))],
-        [sg.InputCombo(('30 min', '1 hr', '2 hr',
-                        '3 hr', '6 hr', '12 hr', '1 día'), size=(40, 10), font=(hv, 11), key='hourcombo', default_value='30 min')],
+        [sg.InputCombo(('1h', '2h',
+                        '3h', '6h', '12h', '1D'), size=(40, 10), font=(hv, 11),
+                       key='hourcombo', default_value='12h')],
         [sg.Checkbox('Elegir rango de fechas', key='checkDate',
                      size=(50, 1), default=False, font=(hv, 11))],
-        [sg.Text('Fecha inicial gráfica:',  size=(22, 1), font=(hv, 10), key='InicialText'), sg.Text('Elija una ->',
-                                                                                                     key='-INICIALG-', size=(12, 1), font=(hv, 10)),
+        [sg.Text('Fecha inicial gráfica:',  size=(22, 1), font=(hv, 10), key='InicialText'),
+         sg.Input('Elija una ->', key='-INICIALG-',
+                  size=(12, 1), font=(hv, 10)),
         sg.CalendarButton("Fecha inicial", close_when_date_chosen=True, format='%d/%m/%Y',
                           target='-INICIALG-', key='InicialButton',  font=(hv, 10), no_titlebar=False), sg.Text(' ' * 14, size=(
                               14, 1))],
-        [sg.Text('Fecha final gráfica:',  size=(22, 1), font=(hv, 10), key='FinalText'), sg.Text('Elija una ->',
-                                                                                                 key='-FINALG-', size=(12, 1), font=(hv, 10)),
+        [sg.Text('Fecha final gráfica:',  size=(22, 1), font=(hv, 10), key='FinalText'), sg.Input('Elija una ->',
+                                                                                                  key='-FINALG-', size=(12, 1), font=(hv, 10)),
          sg.CalendarButton("Fecha final", close_when_date_chosen=True, format='%d/%m/%Y',
                            target='-FINALG-', key='FinalButton',  font=(hv, 10), no_titlebar=False), sg.Text(' ' * 14, size=(
                                15, 1))],
         [sg.Button('Mostrar desempeño semanal',
                    key='buttondesempeño', size=(30, 1), font=(hv, 13))],
         [sg.Text('═' * 80, font=(hv, 8))]]
+
 col3 = [[sg.Text('Registro de eventos', font=(hv, 15)), sg.Text('', font=(hv, 11), size=(30, 1)), sg.Button('Guardar Evento', button_color='white on black',
                                                                                                             key='buttonnota', size=(20, 1), font=(hv, 10))],
         [sg.Multiline(default_text='Escribir apuntes del proceso',
@@ -183,10 +204,20 @@ var = False
 arranque = False
 act = False
 aviso = 0
-rutan = rutaglobal+"\\notas "+datei.strftime("%m-%d-%Y")+".txt"
+rutan = os.path.join(rutaglobal, "notas "+datei.strftime("%m-%d-%Y")+".txt")
 outFile = open(rutan, "a")
+counter = 0
+initial_time = time.time()
+sample_freq = 0.12
+read_wait = 0.03
+cycle = 0
+
 
 while True:
+
+    elapsed_time, cycle, measure_bool = is_it_measure_time(initial_time, sample_freq, cycle)
+    read_bool = is_it_read_time(elapsed_time, sample_freq, read_wait)
+    # print(elapsed_time, cycle, measure_bool, read_bool)
 
     event, values = window.read(timeout=10)
 
@@ -198,29 +229,49 @@ while True:
     if((var == False and contador > 0) and act == False):
         window.Element('lectura').Update('')
         act = True
-    if (((((int(time.time()-instanteInicial))/60) > 1.1) or contador == 0) and arranque == True):
-        # comando = raw_input('Introduce un comando: ') #Input
-        # arduino.write(comando) #Mandar un comando hacia Arduino
-        if(contador == 0):
-            window.Element('lectura').Update('Sin datos')
 
-        instanteInicial = time.time()
+    if(contador == 0):
+            window.Element('lectura').Update('Sin datos')
+            contador = 1
+
+    if ((measure_bool) and arranque == True):
+        
         dif = datetime.datetime.now()-contdia
         dias = dif.days
         window.Element('dia').Update('Día # ' + str(dias))
-       # arduino1.write(str.encode("SIU"))
-        contador = 1
+
+        # Send message to the arduino to perform measure if we are in real case
+        if not test_code:
+            arduino.write(str.encode("SIU"))
+
         print("Escribiendo")
 
         var = True
 
-    if ((((time.time()-instanteInicial)/60) > 0.9) and var == True):
+    if ((read_bool) and var == True):
         window.Element('lectura').Update('En lectura')
-    if (((((time.time()-instanteInicial))/60) > 0.93) and var == True):
         print("Leyendo")
+
+        if test_code:
+            global_df = update_global_df(line = line_list[counter], global_df=global_df, time_stamp = time_list[counter])
+            counter = counter+1
+        else:
+            line = read_arduino_line(arduino)
+            global_df = update_global_df(line = line, global_df=global_df)
+        
+        make_report(global_df=global_df, resample='1D')
+        # Compute important measure statistics
+        curr_df = global_df.iloc[[-1], :]
+        mean_df = curr_df.groupby(level=0, axis=1).mean()
+        general_ferm_mean = mean_df.loc[:, mean_df.columns.str.contains('f')].mean().values[0] # FIXME: This should update based on a selected fermenter not in all
+        # Update the window labels
+        window.Element('Tamb').Update(f'{round(mean_df.t_amb.values[0],1)}°C ')
+        window.Element('Hamb').Update(f'{round(mean_df.h_amb.values[0],1)}%')
+        window.Element('Tfer').Update(f'{round(general_ferm_mean,1)}°C')
 
         var = False
         act = False
+
     if event == 'buttonnota':
         nota = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + \
             "  "+values['multiline']+"/n"
@@ -265,12 +316,11 @@ while True:
             var = False
 
             if event in (sg.WIN_CLOSED, 'Exit'):
-                arduino1.close()  # Finalizamos la comunicacion
+                arduino.close()  # Finalizamos la comunicacion
                 break
 
     if (values['graphtype'] in ('Perfil 3D', 'Cámara termica')):
         window['checkDate'].update(disabled=True)
-       # window.Element('lectura').Update('perfil 3d')
         window['checkDate'].update(visible=False)
         window['-INICIALG-'].update(visible=False)
         window['-FINALG-'].update(visible=False)
@@ -278,6 +328,9 @@ while True:
         window['InicialText'].update(visible=False)
         window['FinalButton'].update(visible=False)
         window['FinalText'].update(visible=False)
+        start_date = -1
+        end_date = -1
+
     if (values['graphtype'] not in ('Gráficas completas', 'Sensores por fermentador',
                                     'Promedio y desviación estándar')):
         window['checkresamp'].update(disabled=True)
@@ -290,10 +343,19 @@ while True:
         window['hourcombo'].update(visible=True)
         window['checkresamp'].update(visible=True)
 
+    if (values['graphtype'] not in ('Promedio y desviación estándar') and ferlist.count('Todos los fermentadores') > 0):
+        todos = ferlist.remove('Todos los fermentadores')
+        window['combofer'].update(
+            value='Fermentador 1', values=ferlist)
+
+    if (values['graphtype'] in ('Promedio y desviación estándar') and ferlist.count('Todos los fermentadores') == 0):
+        ferlist.append('Todos los fermentadores')
+        window['combofer'].update(
+            value='Todos los fermentadores', values=ferlist)
+
     if (values['graphtype'] not in ('Perfil 3D', 'Cámara termica')):
         window['checkDate'].update(visible=True)
         window['checkDate'].update(disabled=False)
-        window['checkDate'].update(visible=True)
         window['-INICIALG-'].update(visible=True)
         window['-FINALG-'].update(visible=True)
         window['InicialButton'].update(visible=True)
@@ -301,34 +363,61 @@ while True:
         window['FinalButton'].update(visible=True)
         window['FinalText'].update(visible=True)
 
-    if (values['checkresamp'] != True):
-        window['hourcombo'].update(visible=False)
-    if (values['checkresamp'] == True):
-        window['hourcombo'].update(visible=True)
-    if (values['checkDate'] != True):
-        start_date = -1
-        end_date = -1
-        window['-INICIALG-'].update(visible=False)
-        window['-FINALG-'].update(visible=False)
-        window['InicialButton'].update(visible=False)
-        window['InicialText'].update(visible=False)
-        window['FinalButton'].update(visible=False)
-        window['FinalText'].update(visible=False)
-    if (values['checkDate'] == True):
-        window['-INICIALG-'].update(visible=True)
-        window['-FINALG-'].update(visible=True)
-        window['InicialButton'].update(visible=True)
-        window['InicialText'].update(visible=True)
-        window['FinalButton'].update(visible=True)
-        window['FinalText'].update(visible=True)
-        plot = values['graphtype']
-    request_dict = {'start_date': start_date, 'end_date': end_date,
-                    'fermenter': fermenter, 'plot': plot, 'resampling': resampling}
+        if (values['checkresamp'] != True):
+            window['hourcombo'].update(value='12h', visible=False)
+
+        if (values['checkresamp'] == True):
+            window['hourcombo'].update(visible=True)
+
+        if (values['checkDate'] != True):
+            start_date = -1
+            end_date = -1
+            window['-INICIALG-'].update(visible=False)
+            window['-FINALG-'].update(visible=False)
+            window['InicialButton'].update(visible=False)
+            window['InicialText'].update(visible=False)
+            window['FinalButton'].update(visible=False)
+            window['FinalText'].update(visible=False)
+
+        if (values['checkDate'] == True):
+            window['InicialText'].update(visible=True)
+            window['-INICIALG-'].update(visible=True)
+            window['InicialButton'].update(visible=True)
+            window['FinalText'].update(visible=True)
+            window['-FINALG-'].update(visible=True)
+            window['FinalButton'].update(visible=True)
+
+            if (values['-INICIALG-'] not in ('Elija una ->', start_date)):
+                start_date = values['-INICIALG-']
+                print(start_date)
+            if (values['-FINALG-'] not in ('Elija una ->', end_date)):
+                end_date = values['-FINALG-']
+                print(end_date)
+
+    plot_name_mapper = {'Gráficas completas':               'complete_fermenter',
+                        'Violin plot':                      'violin_fermenter',
+                        'Sensores por fermentador':         'all_sensors_fermenter',
+                        'Promedio y desviación estándar':   'mean_std_fermenter',
+                        'Perfil 3D':                        '3d_temp',
+                        'Cámara termica':                   'thermal_camera'}
+
     if event == 'buttongraficar':
-        filename = request_plot(request_dict)
+        plot = values['graphtype']
+        resampling = values['hourcombo']
+        fermenter = int(values['combofer'].split()[1])
+        request_dict = {'start_date': start_date, 'end_date': end_date,
+                        'fermenter': fermenter, 'plot': plot_name_mapper[plot], 'resample': resampling}
+        filename = request_plot(request_dict, global_df)
+        filename = modify_image(filename, w-100)
         window['ImagePlot'].update(filename=filename, visible=True)
         window.refresh()
         window.move_to_center()
         settings['ImagePlot'] = filename
 
+    # If we are in test mode end interface when there are no more real data to plot
+    if test_code and (counter >= (len(line_list)-1)):
+        break
+
+window.close()
+window.close()
 window.close()

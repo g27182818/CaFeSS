@@ -619,23 +619,24 @@ requested_plot = {  'start_date': '-1', # '-1' to use the beginning of the globa
                     'resampling': '1D' # String with possible resampling that can be used for 'plot'=='complete_fermenter' or 'all_sensors_fermenter' or 'mean_std_fermenter'. choices = ['1h', '3h', '6h', '12h', '1D'] 
                     }
 
+
 def request_plot(request_dict, global_df):
     """
     This function recieves a dictionary that specifies a required plot, makes the plot, saves it and returns a path where the plot is stored.
 
     Args:
         request_dict (dict):    This dictionary has all the necessary details to make the plot that the user wants. The keys are:
-                                'start_date':   E.g. '-1'. String in the format of pysimplegui calendar button output to define start date of the plot.
-                                                '-1' to use the beginning of the global dataframe. If 'plot'=='3d_temp_gif' or 'thermal_camera' this
+                                'start_date':   E.g. -1. String in the format of pysimplegui calendar button output to define start date of the plot.
+                                                -1 to use the beginning of the global dataframe. If 'plot'=='3d_temp_gif' or 'thermal_camera' this
                                                 argument will not be taken into acount. Note that if 'start_date'==-1 then also 'end_date'=-1.
-                                'end_date':     E.g. '-1'. String in the format of pysimplegui calendar button output to define end date of the plot.
-                                                '-1' to use the end of the global dataframe. If 'plot'=='3d_temp_gif' or 'thermal_camera' this
+                                'end_date':     E.g. -1. String or int in the format of pysimplegui calendar button output to define end date of the plot.
+                                                -1 to use the end of the global dataframe. If 'plot'=='3d_temp_gif' or 'thermal_camera' this
                                                 argument will not be taken into acount. Note that if 'end_date'==-1 then also 'start_date'=-1.
                                 'fermenter':    E.g. -1. Int specifying the fermenter to plot. Must be -1 or bellow the total number of fermenters.
                                                 Argument -1 will only work for 'plot'=='mean_std_fermenter' to show all fermenters. There is no fermenter 0.
                                                 They start from 1.
                                 'plot':         E.g.'complete_fermenter'. String specifying the plot to do. choices = ['complete_fermenter', 'violin_fermenter',
-                                                'all_sensors_fermenter', 'mean_std_fermenter', '3d_temp_gif', 'thermal_camera']
+                                                'all_sensors_fermenter', 'mean_std_fermenter', '3d_temp', 'thermal_camera']
                                 'resampling':   E.g. '1D'. String with possible resampling that can be used for 'plot'==['complete_fermenter', 'all_sensors_fermenter',
                                                 'mean_std_fermenter']. choices = ['1h', '2h', '3h', '6h', '12h', '1D'].
         global_df (Pandas.DataFrame): Dataframe with all the needed data to make each plot.
@@ -643,12 +644,11 @@ def request_plot(request_dict, global_df):
     Returns:
         str: A string with the path to the stored plot.
     """
-
     # If start and end dates are not specified the don't perform any filtering of global_df
-    if (request_dict['start_date'] == '-1') and (request_dict['end_date'] == '-1'):
+    if (request_dict['start_date'] == -1) and (request_dict['end_date'] == -1):
         filtered_df = global_df
     # Filter global_df with start and end if specified
-    elif (request_dict['start_date'] != '-1') and (request_dict['end_date'] != '-1'):
+    elif (request_dict['start_date'] != -1) and (request_dict['end_date'] != -1):
         filtered_df = filter_global_df(global_df, request_dict['start_date'], request_dict['start_date'])
     else:
         raise ValueError('Invalid date filtering for global dataframe. Start and end date must both be "-1" or neither of them should be "-1".')
@@ -656,7 +656,7 @@ def request_plot(request_dict, global_df):
     # Create folder of requested plots if it does not exists
     os.makedirs(os.path.join('data', 'requested_plots'), exist_ok=True)
     # Get the path from the now string for images that are not already generated
-    path = f'{datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")}_{request_dict["plot"]}.jpeg'
+    path = os.path.join('data', 'requested_plots', f'{datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")}_{request_dict["plot"]}.jpeg')
 
     # Handle all the different kinds of plots
     if request_dict['plot']=='complete_fermenter':
@@ -680,12 +680,11 @@ def request_plot(request_dict, global_df):
         plt.savefig(path, dpi=300)
         plt.close()
 
+    # FIXME: Fix this to current 3d profile
     # If the user requested the 3D gif then point to the path where the gif is already stored
-    elif request_dict['plot']== '3d_temp_gif':
-        make_gif(request_dict['fermenter'])
-        path = os.path.join('data', 'current_gifs', f'f{request_dict["fermenter"]}.gif')
-        if not os.path.exists(path):
-            raise ValueError(f'There is still no gif file in {path}')
+    elif request_dict['plot']== '3d_temp':
+        path = os.path.join('data', 'current_3d_profiles', f'f{request_dict["fermenter"]}.jpeg')
+
 
     # TODO: Make thermal camara photo work even when camera is disconnected
     # elif request_dict['plot']== 'thermal_camera':  

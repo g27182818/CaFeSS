@@ -4,13 +4,16 @@ import os
 from plotting_functions import *
 import datetime
 import serial
+from PIL import Image
 # import board,busio
 # import adafruit_mlx90640
 
-def initialize_arduino(serial_path = '/dev/ttyUSB0', serial_speed = 9600):
+def initialize_arduino(serial_path = '/dev/ttyUSB0', serial_speed = 9600, test=True):
     # Test code. uncomment the next line to get real function
-    arduino = serial.Serial()
-    # arduino = serial.Serial(serial_path, serial_speed)
+    if test:
+        arduino = serial.Serial()
+    else:
+        arduino = serial.Serial(serial_path, serial_speed)
     return arduino
 
 # This function gets string lines from the arduino
@@ -118,19 +121,14 @@ def update_global_df(line, global_df = None, time_stamp=None):
     if global_df.shape[0] == 1:
         global_df.to_csv(os.path.join('data', 'global_df.csv'))
         per_fermenter_df.to_csv(os.path.join('data', 'per_fermenter_df.csv'))
-        per_day_df.to_csv(os.path.join('data', 'per_day_df.csv'))
     # For the next data just append to the csvs
     elif global_df.shape[0] > 1:
         global_df.iloc[[-1], :].to_csv(os.path.join('data', 'global_df.csv'), mode='a', header=None)
         per_fermenter_df.iloc[[-1], :].to_csv(os.path.join('data', 'per_fermenter_df.csv'), mode='a', header=None)
-        per_day_df.iloc[[-1], :].to_csv(os.path.join('data', 'per_day_df.csv'), mode='a', header=None)
     else:
         raise ValueError('Global data frame has no data.')
-        
-    # # Actualizar informacion en la interfaz
-    # window.Element('Tamb').Update(tamb)
-    # window.Element('Hamb').Update(hamb)
-    # window.Element('Tfer').Update(tfer)
+    # Overwrite each time per day dataframe
+    per_day_df.to_csv(os.path.join('data', 'per_day_df.csv'))
 
     return global_df
 
@@ -139,6 +137,26 @@ def filter_global_df(global_df, start_str, end_str):
     start_datetime = datetime.datetime.strptime(start_str, "%Y-%m-%d %H:%M:%S")
     end_datetime = datetime.datetime.strptime(end_str, "%Y-%m-%d %H:%M:%S")
     return global_df[start_datetime:end_datetime]
+
+def is_it_measure_time(start, period, prev_cycle):
+    elapsed_time = round((time.time() - start)/60, 2)
+    cycles_passed = elapsed_time//period
+    measure_bool = cycles_passed != prev_cycle
+    prev_cycle = cycles_passed
+
+    return elapsed_time, prev_cycle, measure_bool
+
+def is_it_read_time(elapsed_time, period, read_wait):
+    return round(elapsed_time%period, 2) == read_wait
+
+def modify_image(path, width):
+    image1 = Image.open(path)
+    width_percent1 = (width / float(image1.size[0]))
+    height_size1 = int((float(image1.size[1]) * float(width_percent1)))
+    image1 = image1.resize((width, height_size1))
+    new_path = path.replace('jpeg','png')
+    image1.save(new_path)
+    return new_path
 
 # # This function initializes the thermal camera and returns a camera object
 # def initialize_camera():

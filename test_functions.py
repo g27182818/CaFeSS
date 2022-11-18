@@ -247,7 +247,7 @@ def test_system(iterations=100, fermenters = 8, sensors = 12, general_noise = 2,
     for i in range(fermenters):
         make_gif(i+1)
 
-test_system(iterations = -1, fermenters=2)
+# test_system(iterations = -1, fermenters=2)
 
 # line_list, time_list = generate_realistic_test_line_list(fermenters=1)
 # print(line_list)

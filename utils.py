@@ -60,7 +60,7 @@ def get_pd_from_line(line, time_stamp=None):
         # Declare fermenter dict
         fermenter_dict = {f'f{i+1}-{j+1}': [fermenter_list[j]] for j in range(len(fermenter_list))}
         # Append current information to global_dict
-        global_dict = global_dict | fermenter_dict
+        global_dict = {**global_dict, **fermenter_dict}
 
     # Get pandas dataframe for current measurement
     output_df = pd.DataFrame.from_dict(global_dict)
@@ -147,7 +147,11 @@ def is_it_measure_time(start, period, prev_cycle):
     return elapsed_time, prev_cycle, measure_bool
 
 def is_it_read_time(elapsed_time, period, read_wait):
-    return round(elapsed_time%period, 2) == read_wait
+    difference = round(elapsed_time%period, 2) - read_wait
+    if (-1.5 < difference*60) and (difference*60 < 1.5):
+        return True
+    else:
+        return False
 
 def modify_image(path, width):
     image1 = Image.open(path)

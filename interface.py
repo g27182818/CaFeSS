@@ -19,7 +19,7 @@ from report_gen import make_report
 import os
 
 # Test code parameter
-test_code = True
+test_code = False
 
 serial_path = '/dev/ttyUSB0' # '/dev/ttyUSB1'
 serial_speed = 9600
@@ -208,8 +208,8 @@ rutan = os.path.join(rutaglobal, "notas "+datei.strftime("%m-%d-%Y")+".txt")
 outFile = open(rutan, "a")
 counter = 0
 initial_time = time.time()
-sample_freq = 0.12
-read_wait = 0.03
+sample_freq = 0.5
+read_wait = 0.116
 cycle = 0
 
 

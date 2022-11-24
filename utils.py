@@ -112,7 +112,7 @@ def update_global_df(line, global_df = None, time_stamp=None):
     # Get per day averages
     per_day_df = round(global_df.resample('D').mean(), 2)
     per_day_df.columns.names = [None, 'datetime']
-    # Promedio de todos los sensores por fermentador
+    # Average of all sensor per fermenter and ambient conditions
     per_fermenter_df = round(global_df.groupby(level=0, axis=1).mean(), 2)
     per_fermenter_df.index.name = 'datetime'
 

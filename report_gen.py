@@ -59,12 +59,12 @@ class PDF(FPDF):
         self.add_page()
         self.page_body(images)
 
-def make_report(global_df, resample):
+def make_report(global_df, resample, path = 'Reporte_general.pdf'):
     pdf_doc = PDF() # Create pdf class
     img_paths = pdf_doc.save_plots(global_df, resample) # Make and save plots for each fermenter
     # Iterate to print pages
     for elem in img_paths:
         pdf_doc.print_page(elem)
 
-    pdf_doc.output('Reporte_general.pdf', 'F')
+    pdf_doc.output(path, 'F')
 

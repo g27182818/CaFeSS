@@ -7,7 +7,7 @@ from scipy import interpolate
 import matplotlib.pyplot as plt
 from report_gen import make_report
 from utils import update_global_df
-from plotting_functions import make_gif
+from plotting_functions import make_gif, save_all_3d_plots
 from tqdm import trange
 
 
@@ -104,12 +104,12 @@ def get_interpolated_real_data(resample_min=30):
 
     # Get minimum total sampled time
     min_tot_time = min([real_t_ferm.iloc[-1,0], real_t_amb.iloc[-1,0], real_h_amb.iloc[-1,0]])
-    # Subsaple data to have all shared maximum times
+    # Subsample data to have all shared maximum times
     real_t_ferm = real_t_ferm.loc[real_t_ferm['X'] <= min_tot_time, :]
     real_t_amb = real_t_amb.loc[real_t_amb['X.1'] <= min_tot_time, :]
     real_h_amb = real_h_amb.loc[real_h_amb['X.2'] <= min_tot_time, :]
 
-    # Get the time between each final meassure in days
+    # Get the time between each final measure in days
     day_interval = datetime.timedelta(minutes=resample_min)/datetime.timedelta(days=1)
     # Define interpolation time vector
     t_interpolate = np.arange(0, min_tot_time, day_interval)
@@ -129,7 +129,7 @@ def get_interpolated_real_data(resample_min=30):
 
     return interpolated_df
 
-def generate_realistic_test_df(fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2):
+def generate_realistic_test_df(fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2, resample_min=30):
     """
     This function generates a global test dataframe with simulated noisy data for a cacao fermentation experiment. The base to simulate
     the data is from the resources/real_data.csv file. Hence, this simulation is much more realistic than generate_test_df() function.
@@ -138,22 +138,23 @@ def generate_realistic_test_df(fermenters = 8, sensors = 12, general_noise = 2, 
     Args:
         fermenters (int, optional): Number of fermenters in the dataframe. Defaults to 8.
         sensors (int, optional): Number of sensors in each fermenter. Defaults to 12.
-        general_noise (int, optional): Variance of the gaussian distribution to be added as a noise to all data. Defaults to 2.
-        start_noise (int, optional): Variance of the gaussian distribution added as an offset for all data. Defaults to 2.
+        general_noise (int, optional): Variance of the Gaussian distribution to be added as a noise to all data. Defaults to 2.
+        start_noise (int, optional): Variance of the Gaussian distribution added as an offset for all data. Defaults to 2.
+        resample_min (int, optional): This is the number of minutes between each interpolated point. Defaults to 30.
 
     Returns:
-        Pandas.Dataframe: Multiindex dataframe containing all the simulated data. This data is realistic but it is just used
+        Pandas.Dataframe: Multi-index dataframe containing all the simulated data. This data is realistic but it is just used
         to tune the plotting functions. It does not correspond to a real experiment.
     """
     # Get realistic interpolated data
-    interpolated_df = get_interpolated_real_data()
+    interpolated_df = get_interpolated_real_data(resample_min=resample_min)
 
     # Make column names lists
     fermenter_list = [f'f{i+1}' for i in range(fermenters)]
     sensor_list = [f'{i+1}' for i in range(sensors)]
-    # Make multiindex fermenter column names
+    # Make multi-index fermenter column names
     fermenter_columns = pd.MultiIndex.from_product([fermenter_list, sensor_list])
-    # Make ambient meassures multiindex columns
+    # Make ambient measures multi-index columns
     amb_columns = pd.MultiIndex.from_product([['t_amb', 'h_amb'], ['1', '2']])
     # Join fermenter and ambient columns
     test_columns = amb_columns.append(fermenter_columns)
@@ -177,25 +178,27 @@ def generate_realistic_test_df(fermenters = 8, sensors = 12, general_noise = 2, 
     
     return test_df
 
-def generate_realistic_test_line_list(fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2):
+def generate_realistic_test_line_list(fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2, resample_min=30):
     """
     This function generates a realistic dataframe using generate_realistic_test_df and splits it into individual lines with the format that should be
     used by the arduino to send the data. It returns a list of string lines in arduino format and a list of realistic time stamps. The idea is to use
-    both lists to make simulations of real world meassures to asses algorithm performance.
+    both lists to make simulations of real world measures to asses algorithm performance.
 
     Args:
         fermenters (int, optional): Number of simulated fermenters. Defaults to 8.
         sensors (int, optional): Number of sensors in each fermenter. Defaults to 12.
-        general_noise (int, optional): Variance of the gaussian distribution to be added as a noise to all data. Defaults to 2.
-        start_noise (int, optional): Variance of the gaussian distribution added as an offset for all data. Defaults to 2.
+        general_noise (int, optional): Variance of the Gaussian distribution to be added as a noise to all data. Defaults to 2.
+        start_noise (int, optional): Variance of the Gaussian distribution added as an offset for all data. Defaults to 2.
+        resample_min (int, optional): This is the number of minutes between each interpolated point. Defaults to 30.
 
     Returns:
         line_list (list): List of strings where each element emulates a line sent by the arduino.
-        time_list (list): List of realistic time stamps asociated with the lines. In real application lines are recieved at the times
+        time_list (list): List of realistic time stamps associated with the lines. In real application lines are received at the times
                             specified by this list.
     """
     # Generate realistic dataframe
-    realistic_df = generate_realistic_test_df(fermenters = fermenters, sensors = sensors, general_noise = general_noise, start_noise = start_noise)
+    realistic_df = generate_realistic_test_df(fermenters = fermenters, sensors = sensors, general_noise = general_noise,
+                                                start_noise = start_noise, resample_min = resample_min)
     # Get meassure names to put in lines
     level_0_index = realistic_df.columns.get_level_values(0).unique().tolist()
 
@@ -224,7 +227,7 @@ def generate_realistic_test_line_list(fermenters = 8, sensors = 12, general_nois
     
     return line_list, time_list
 
-def test_system(iterations=100, fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2):
+def test_system(iterations=100, fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2, resample_min=30):
 
     # Make data dir if it does not exist for first run
     os.makedirs(os.path.join('data'), exist_ok=True)
@@ -232,7 +235,8 @@ def test_system(iterations=100, fermenters = 8, sensors = 12, general_noise = 2,
     shutil.rmtree(os.path.join('data'))
 
     line_list, time_list = generate_realistic_test_line_list(fermenters = fermenters, sensors = sensors,
-                                                             general_noise = general_noise, start_noise = start_noise)
+                                                            general_noise = general_noise, start_noise = start_noise,
+                                                            resample_min = resample_min)
     global_df = None
     
     if iterations == -1:
@@ -247,7 +251,66 @@ def test_system(iterations=100, fermenters = 8, sensors = 12, general_noise = 2,
     for i in range(fermenters):
         make_gif(i+1)
 
-# test_system(iterations = -1, fermenters=2)
+def generate_dummy_files(fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2, resample_min = 30):
+
+    # # Make data dir if it does not exist for first run
+    # os.makedirs(os.path.join('data', 'dummy_files'), exist_ok=True)
+    # # Delete contents of the data folder
+    # shutil.rmtree(os.path.join('data'))
+    # os.makedirs(os.path.join('data', 'dummy_files'), exist_ok=True)
+
+
+    # Generate simulation data
+    realistic_df = generate_realistic_test_df(  fermenters = fermenters, sensors = sensors,
+                                                general_noise = general_noise, start_noise = start_noise,
+                                                resample_min = resample_min)
+    # # Generate report
+    # make_report(realistic_df, '1D', os.path.join('data', 'dummy_files', 'general_report.pdf'))
+
+    # # Plot all 3D profiles
+    # save_all_3d_plots(realistic_df)
+
+    # # Generate all gifs
+    # for i in range(fermenters):
+    #     make_gif(i+1, path = os.path.join('data', 'dummy_files', f'f{i+1}.gif'))
+    
+    # Get per day averages of everything
+    per_day_df = round(realistic_df.resample('D').mean(), 2)
+    per_day_df.columns.names = [None, 'datetime']
+    # Average of all sensor per fermenter and ambient conditions
+    per_fermenter_df = round(realistic_df.groupby(level=0, axis=1).mean(), 2)
+    per_fermenter_df.index.name = 'datetime'
+
+    # Save dummy csv files
+    realistic_df.to_csv(os.path.join('data', 'dummy_files', 'global_df.csv'))
+    per_fermenter_df.to_csv(os.path.join('data', 'dummy_files', 'per_fermenter_df.csv'))
+    per_day_df.to_csv(os.path.join('data', 'dummy_files', 'per_day_df.csv'))
+
+    # Generate dummy notes file
+    dummy_notes = [ 'Se realizo volteo fermentador 1 y 2',
+                    'Se realizo volteo fermentador 1 y 2',
+                    'Se realizo volteo fermentador 1 y 2',
+                    'Se realizo volteo fermentador 1 y 2',
+                    'El día de hoy el cuarto de fermentación permaneció abierto todo el dia debido a obras',
+                    'Hubo fuertes lluvias en la noche, el cuarto de fermentación amaneció inundado',
+                    'Se percibe cambio en los olores volatiles de la masa del fermentador 2',
+                    'Prueba de corte con resultado de 70% de fermentación adecuada para fermentador 1',
+                    'Prueba de corte con resultado de 60% de fermentación adecuada para fermentador 2',
+                    'Prueba de corte con resultado de 90% de fermentación adecuada para fermentador 1. Se finaliza la fermentación',
+                    'Prueba de corte con resultado de 100% de fermentación adecuada para fermentador 2. Se finaliza la fermentación']
+    indexes = np.linspace(30, realistic_df.shape[0]-1, len(dummy_notes)).astype(int)
+    rutan = os.path.join('data', 'dummy_files', "notes.txt")
+    outFile = open(rutan, "a")
+
+    for i in range(len(dummy_notes)):
+        nota = realistic_df.index[indexes[i]].strftime("%m/%d/%Y, %H:%M:%S") + "  "+dummy_notes[i]+"\n"
+        outFile.write(nota)
+
+
+
+# test_system(iterations = -1, fermenters=4)
+generate_dummy_files(fermenters = 2, general_noise = 0.5, start_noise = 0.5, resample_min = 15)
+
 
 # line_list, time_list = generate_realistic_test_line_list(fermenters=1)
 # print(line_list)

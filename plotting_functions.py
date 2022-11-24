@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
+from matplotlib import pylab
 import seaborn as sn
 import numpy as np
 import pandas as pd
+import gc
 import os
 import time
 import datetime
@@ -13,6 +15,8 @@ import matplotlib
 import matplotlib.patches as mpatches
 from tqdm import trange
 from utils import filter_global_df# , initialize_camera
+
+matplotlib.use('agg')
 pd.options.mode.chained_assignment = None
 
 
@@ -328,7 +332,7 @@ def plot_3d_profile(fermenter, global_df, spanish=True):
     # Initialize observed temperatures
     obs_temps = np.zeros((4,4,3))
 
-    # Asign inputs to array
+    # Assign inputs to array
     count = 0
     for i in range(input_array.shape[0]):
         for j in range(input_array.shape[1]):
@@ -474,9 +478,9 @@ def plot_3d_profile(fermenter, global_df, spanish=True):
     plt.imshow(colors_floors[1], origin='lower',
             extent = extend_var)
     add_sampled_points(min_padding, x, y, ax2)
-    plt.title(plot_str_dict['middle'], fontdict= font)
-    plt.xlabel("$x~(cm)$", fontsize = 10, fontdict=font)
-    plt.ylabel("$y~(cm)$", fontsize = 10, fontdict=font)
+    plt.title(plot_str_dict['middle'], fontdict = font)
+    plt.xlabel("$x~(cm)$", fontsize = 10, fontdict = font)
+    plt.ylabel("$y~(cm)$", fontsize = 10, fontdict = font)
 
     ax3 = fig.add_subplot(gs[2,2])
     plt.imshow(colors_floors[0], origin='lower',
@@ -502,46 +506,22 @@ def plot_3d_profile(fermenter, global_df, spanish=True):
 
     os.makedirs(os.path.join('data', 'current_3d_profiles'), exist_ok=True)
     os.makedirs(os.path.join('data', 'previous_3d_profiles', f'f{fermenter}'), exist_ok=True)
-    plt.savefig(os.path.join('data', 'current_3d_profiles', f'f{fermenter}.jpeg'), dpi=300)
-    plt.savefig(os.path.join('data', 'previous_3d_profiles', f'f{fermenter}', save_string), dpi=300)
+    fig.savefig(os.path.join('data', 'current_3d_profiles', f'f{fermenter}.jpeg'), dpi=300)
+    fig.savefig(os.path.join('data', 'previous_3d_profiles', f'f{fermenter}', save_string), dpi=300)
 
-    plt.close()
+    # This part frees up memory usage avoiding memory leak problems 
+    # TODO: Implement this in all other plots
+    plt.clf()
+    plt.close('all')
+    gc.collect()
 
-# # TODO: Make appropiate documentation of this function. Also program it in english
-# # TODO: Be sure that this function works
-# def take_thermal_picture(mlx):
-#     frame = np.zeros((24*32,)) # Inicialización del tamaño de la imagen, en total 768 pts en un vector de 1xn
-#     mlx.getFrame(frame) # Se actualiza el vector frame con los datos de la camara
-
-#     mlx_shape = (24,32) # Tamaño real de la imagen mlx90640 shape en forma de matriz
-#     data_array = np.fliplr(np.reshape(frame,mlx_shape)) # Actualización del frame en data_frame, ahora es una matriz con los datos de la imagen
-
-#     ax=plt.subplot(111) # Se crea un subplot (Necesario para agregar textos, colorbar, ext.)
-#     N = 26
-#     mean = np.mean(frame) # Se obtiene temperatura media
-#     textstr = "Mean temperature: " + str(mean) + "°C" # Se crea el texto que acompañará a la imagen  
-#     props = dict(boxstyle="round", facecolor = "wheat", alpha = 0.5) # estilo de la caja de texto
-#     t1 = ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize = 14, fontstyle =  "italic",verticalalignment = "top", bbox = props) # Se crea una caja de texto
-#     cmap=plt.get_cmap('jet',26) # Estilo de la barra de color
-#     therm1 = ax.imshow(data_array,interpolation='none', cmap=cmap,vmin=10,vmax=60) # Se coloca la imagen del data_array en la figura
-#     cbar = plt.colorbar(therm1, ticks=np.linspace(10, 260, N), label = "Temperature [°C]") # Se establece la barra de color
-#     # Ahora se definen el titulo y los ejes
-#     plt.title(label="Thermal view",
-#           position=(0.5, 0.9),
-#           fontdict={'family': 'Dejavu Serif',
-#                     'color' : 'black',
-#                     'weight': 'bold',
-#                     'size': 16})
-
-#     plt.xlabel("x-coordinate", size = 12)
-#     plt.ylabel("y-coordinate", size = 12)
 
 def save_all_3d_plots(global_df):
     """
-    This function recieves a global information dataframe and uses plot_3d_profile() to save all images of a all the fermenters in all the datetimes
+    This function receives a global information dataframe and uses plot_3d_profile() to save all images of a all the fermenters in all the datetimes
 
     Args:
-        global_df (pandas.DataFrame): Multiindex dataframe with a cacao fermentation experiment data.
+        global_df (pandas.DataFrame): Multi-index dataframe with a cacao fermentation experiment data.
     """
     # Get the number of fermenters
     level_0 = global_df.columns.get_level_values(level=0).unique()
@@ -553,43 +533,40 @@ def save_all_3d_plots(global_df):
         # Cycle over fermenters
         for j in range(n):
             plot_3d_profile(j+1, line)
-
-def make_gif(fermenter):
+            
+def make_gif(fermenter, path = None):
     """
    This function receives a fermenter, loads all the heatmap images for that fermenter from data/heat_map_plots and saves a GIF
     of the time course of the fermenter.
 
     Args:
         fermenter (int): Number of the fermenter to make GIF.
+        path (str): Path to save the GIF file. If None stores file in os.path.join('data', 'current_gifs', f'f{fermenter}.gif'). Defaults to None.
 
     Raises:
         ValueError: If no images are stored already for the given fermenter.
     """
     # Get image paths
     images_paths = sorted(glob.glob(os.path.join('data', 'previous_3d_profiles', f'f{fermenter}', '*.jpeg')))
-    # Create gif directory
-    os.makedirs(os.path.join('data', 'current_gifs'), exist_ok=True)
     # Raise error
     if len(images_paths) == 0:
         raise ValueError(f'No images are already stored for fermenter {fermenter}')
+    
+    # If no path is specified store gif in current gifs folder
+    if path is None:
+         # Create gif directory
+        os.makedirs(os.path.join('data', 'current_gifs'), exist_ok=True)
+        # Assign store path
+        path = os.path.join('data', 'current_gifs', f'f{fermenter}.gif')
+
     # Create GIF
-    with imageio.get_writer(os.path.join('data', 'current_gifs', f'f{fermenter}.gif'), mode='I', duration=0.2) as writer:
+    with imageio.get_writer(path, mode='I', duration=0.2) as writer:
         t = trange(len(images_paths))
         t.set_description(f'Generating GIF fermenter {fermenter}')
         for i in t:
             filename = images_paths[i]
             image = imageio.imread(filename)
             writer.append_data(image)
-
-
-# Format definition of requested plots
-requested_plot = {  'start_date': '-1', # '-1' to use the beginning of the global dataframe. String in the format of pysimplegui calendar button output. If 'plot'=='3d_temp_gif' or 'thermal_camera' this argument will not be taken into acount 
-                    'end_date': '-1', # '-1' to use the end of the global dataframe. String in the format of pysimplegui calendar button output. If 'plot'=='3d_temp_giff' this argument will not be taken into acount.
-                    'fermenter': -1, # Int specifying the fermenter to plot. Must be between -1 and the total number of fermenters. argument -1 will only work for 'plot'=='mean_std_fermenter' to show all fermenters. There is no fermenter 0. They start from 1.
-                    'plot': 'complete_fermenter', # String with the plot to do. choices = ['complete_fermenter', 'violin_fermenter', 'all_sensors_fermenter', 'mean_std_fermenter', '3d_temp_gif', 'thermal_camera'].
-                    'resampling': '1D' # String with possible resampling that can be used for 'plot'=='complete_fermenter' or 'all_sensors_fermenter' or 'mean_std_fermenter'. choices = ['1h', '3h', '6h', '12h', '1D'] 
-                    }
-
 
 def request_plot(request_dict, global_df):
     """
@@ -668,3 +645,44 @@ def request_plot(request_dict, global_df):
         raise ValueError('Invalid type of plot. Must be one of ["complete_fermenter", "violin_fermenter", "all_sensors_fermenter", "mean_std_fermenter", "3d_temp_gif", "thermal_camera"]')
 
     return path
+
+
+
+
+# # TODO: Make appropiate documentation of this function. Also program it in english
+# # TODO: Be sure that this function works
+# def take_thermal_picture(mlx):
+#     frame = np.zeros((24*32,)) # Inicialización del tamaño de la imagen, en total 768 pts en un vector de 1xn
+#     mlx.getFrame(frame) # Se actualiza el vector frame con los datos de la camara
+
+#     mlx_shape = (24,32) # Tamaño real de la imagen mlx90640 shape en forma de matriz
+#     data_array = np.fliplr(np.reshape(frame,mlx_shape)) # Actualización del frame en data_frame, ahora es una matriz con los datos de la imagen
+
+#     ax=plt.subplot(111) # Se crea un subplot (Necesario para agregar textos, colorbar, ext.)
+#     N = 26
+#     mean = np.mean(frame) # Se obtiene temperatura media
+#     textstr = "Mean temperature: " + str(mean) + "°C" # Se crea el texto que acompañará a la imagen  
+#     props = dict(boxstyle="round", facecolor = "wheat", alpha = 0.5) # estilo de la caja de texto
+#     t1 = ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize = 14, fontstyle =  "italic",verticalalignment = "top", bbox = props) # Se crea una caja de texto
+#     cmap=plt.get_cmap('jet',26) # Estilo de la barra de color
+#     therm1 = ax.imshow(data_array,interpolation='none', cmap=cmap,vmin=10,vmax=60) # Se coloca la imagen del data_array en la figura
+#     cbar = plt.colorbar(therm1, ticks=np.linspace(10, 260, N), label = "Temperature [°C]") # Se establece la barra de color
+#     # Ahora se definen el titulo y los ejes
+#     plt.title(label="Thermal view",
+#           position=(0.5, 0.9),
+#           fontdict={'family': 'Dejavu Serif',
+#                     'color' : 'black',
+#                     'weight': 'bold',
+#                     'size': 16})
+
+#     plt.xlabel("x-coordinate", size = 12)
+#     plt.ylabel("y-coordinate", size = 12)
+
+
+# # Format definition of requested plots
+# requested_plot = {  'start_date': '-1', # '-1' to use the beginning of the global dataframe. String in the format of pysimplegui calendar button output. If 'plot'=='3d_temp_gif' or 'thermal_camera' this argument will not be taken into acount 
+#                     'end_date': '-1', # '-1' to use the end of the global dataframe. String in the format of pysimplegui calendar button output. If 'plot'=='3d_temp_giff' this argument will not be taken into acount.
+#                     'fermenter': -1, # Int specifying the fermenter to plot. Must be between -1 and the total number of fermenters. argument -1 will only work for 'plot'=='mean_std_fermenter' to show all fermenters. There is no fermenter 0. They start from 1.
+#                     'plot': 'complete_fermenter', # String with the plot to do. choices = ['complete_fermenter', 'violin_fermenter', 'all_sensors_fermenter', 'mean_std_fermenter', '3d_temp_gif', 'thermal_camera'].
+#                     'resampling': '1D' # String with possible resampling that can be used for 'plot'=='complete_fermenter' or 'all_sensors_fermenter' or 'mean_std_fermenter'. choices = ['1h', '3h', '6h', '12h', '1D'] 
+#                     }

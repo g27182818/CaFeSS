@@ -19,7 +19,7 @@ from report_gen import make_report
 import os
 
 # Test code parameter
-test_code = False
+test_code = True
 
 serial_path = '/dev/ttyUSB0' # '/dev/ttyUSB1'
 serial_speed = 9600
@@ -32,7 +32,7 @@ global_df = None
 line_list, time_list = generate_realistic_test_line_list(fermenters = 1, sensors = 12, general_noise = 2, start_noise = 2)
 
 # Define global variables
-global rutaglobal, start_date, end_date, fermenter, plot, resampling
+global rutaglobal, start_date, end_date, fermenter, plot, resampling, datei
 
 # Initialize variables
 start_date = -1
@@ -44,7 +44,7 @@ dias = 0
 contdia = 0
 instanteInicial = time.time()
 contador = 0
-rutaglobal = os.getcwd()  # "/home/pi/Raspduino"
+rutaglobal = os.path.join(os.getcwd(), 'data')
 # Set short name for Helvetica
 hv = 'Helvetica'
 os.getcwd()
@@ -75,15 +75,15 @@ image1 = Image.open(os.path.abspath(
 width_percent1 = (fixed_width1 / float(image1.size[0]))
 height_size1 = int((float(image1.size[1]) * float(width_percent1)))
 image1 = image1.resize((fixed_width1, height_size1))
-image1.save('resources/probe1.png')
+image1.save(os.path.join('resources', 'probe1.png'))
 
 # TODO: set this depending in the number of detected fermenters
 ferlist = ['Fermentador 1', 'Fermentador 2', 'Fermentador 3', 'Fermentador 4']
 
 sg.theme('LightBrown11')
 e = datetime.datetime.now()
-global datei
 datei = datetime.datetime.now()
+
 
 col1 = [[sg.Text(' ' * 25,  size=(
     25, 1), font=(hv, 9)), sg.Text('Fermentación del Cacao',  size=(
@@ -153,7 +153,7 @@ col3 = [[sg.Text('Registro de eventos', font=(hv, 15)), sg.Text('', font=(hv, 11
         [sg.Text('═' * 83, font=(hv, 8))],
 
         [sg.Text('Ubicación de datos', font=(hv, 15))],
-        [sg.Input(default_text='rutaglobal', key='fileinput', size=(60, 1), font=(
+        [sg.Input(default_text=rutaglobal, key='fileinput', size=(60, 1), font=(
             hv, 11)), sg.Text('', size=(2, 1)), sg.Button('Cambiar Ubicación', key='buttonfile', size=(15, 1), font=(hv, 11))],
         [sg.Text('═' * 83, font=(hv, 8))],
         [sg.Text(' ' * 80, font=(hv, 8))],
@@ -204,7 +204,7 @@ var = False
 arranque = False
 act = False
 aviso = 0
-rutan = os.path.join(rutaglobal, "notas "+datei.strftime("%m-%d-%Y")+".txt")
+rutan = os.path.join(rutaglobal, "notes.txt")
 outFile = open(rutan, "a")
 counter = 0
 initial_time = time.time()
@@ -273,25 +273,23 @@ while True:
         act = False
 
     if event == 'buttonnota':
-        nota = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + \
-            "  "+values['multiline']+"/n"
+        nota = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + "  "+values['multiline']+"/n"
         outFile.write(nota)
         window.Element('multiline').Update('')
         sg.popup_timed(
             'Nota Guardada', 'Su nota fue almacenada en la ubicación elegida!', keep_on_top=True)
     if event == 'volteo':
-        nota = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + \
-            " Volteo/n"
+        nota = datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " Se realizo volteo/n"
         outFile.write(nota)
         sg.popup_timed(
             'Volteo Guardada', 'Su registro de volteo fue almacenada en la ubicación elegida!', keep_on_top=True)
     if event == 'buttonfile':
-        folder = sg.popup_get_folder('Porfavor ingrese una nueva ubicación')
+        folder = sg.popup_get_folder('Por favor ingrese una nueva ubicación')
         if folder == 'OK':
             rutaglobal = folder
             window.Element('fileinput').Update(rutaglobal)
-            rutan = rutaglobal+"'\\notas" + \
-                datei.strftime("%m-%d-%Y")+".txt"
+            # rutan = rutaglobal+"'\\notas" + datei.strftime("%m-%d-%Y")+".txt"
+            rutan = os.path.join(rutaglobal, 'notes.txt')
             outFile.close()
             outFile = open(rutan, "a")
 

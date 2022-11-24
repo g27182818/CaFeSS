@@ -253,26 +253,26 @@ def test_system(iterations=100, fermenters = 8, sensors = 12, general_noise = 2,
 
 def generate_dummy_files(fermenters = 8, sensors = 12, general_noise = 2, start_noise = 2, resample_min = 30):
 
-    # # Make data dir if it does not exist for first run
-    # os.makedirs(os.path.join('data', 'dummy_files'), exist_ok=True)
-    # # Delete contents of the data folder
-    # shutil.rmtree(os.path.join('data'))
-    # os.makedirs(os.path.join('data', 'dummy_files'), exist_ok=True)
+    # Make data dir if it does not exist for first run
+    os.makedirs(os.path.join('data', 'dummy_files'), exist_ok=True)
+    # Delete contents of the data folder
+    shutil.rmtree(os.path.join('data'))
+    os.makedirs(os.path.join('data', 'dummy_files'), exist_ok=True)
 
 
     # Generate simulation data
     realistic_df = generate_realistic_test_df(  fermenters = fermenters, sensors = sensors,
                                                 general_noise = general_noise, start_noise = start_noise,
                                                 resample_min = resample_min)
-    # # Generate report
-    # make_report(realistic_df, '1D', os.path.join('data', 'dummy_files', 'general_report.pdf'))
+    # Generate report
+    make_report(realistic_df, '1D', os.path.join('data', 'dummy_files', 'general_report.pdf'))
 
-    # # Plot all 3D profiles
-    # save_all_3d_plots(realistic_df)
+    # Plot all 3D profiles
+    save_all_3d_plots(realistic_df)
 
-    # # Generate all gifs
-    # for i in range(fermenters):
-    #     make_gif(i+1, path = os.path.join('data', 'dummy_files', f'f{i+1}.gif'))
+    # Generate all gifs
+    for i in range(fermenters):
+        make_gif(i+1, path = os.path.join('data', 'dummy_files', f'f{i+1}.gif'))
     
     # Get per day averages of everything
     per_day_df = round(realistic_df.resample('D').mean(), 2)
